@@ -1,9 +1,9 @@
 /*
  * -----------------------------------------------------------------------------
- *  File: RessurectShapeAction.java
- *  Owner: Gajula Sri Siva Sai Shashank
- *  Roll Number: 112201014
- *  Module: Canvas
+ * File: ResurrectShapeAction.java
+ * Owner: Gajula Sri Siva Sai Shashank
+ * Roll Number: 112201014
+ * Module: Canvas
  *
  * -----------------------------------------------------------------------------
  */
@@ -28,8 +28,6 @@ import com.swe.canvas.datamodel.shape.ShapeId;
  * <p><b>Design Pattern:</b> Command</p>
  *
  * @author Gajula Sri Siva Sai Shashank
-
- 
  */
 public class ResurrectShapeAction extends Action {
 
@@ -48,8 +46,12 @@ public class ResurrectShapeAction extends Action {
      * @param prevState The state before the action (isDeleted=true).
      * @param newState  The state after the action (isDeleted=false).
      */
-    public ResurrectShapeAction(final String actionId, final String userId, final long timestamp,
-                                final ShapeId shapeId, final ShapeState prevState, final ShapeState newState) {
+    public ResurrectShapeAction(final String actionId,
+                                final String userId,
+                                final long timestamp,
+                                final ShapeId shapeId,
+                                final ShapeState prevState,
+                                final ShapeState newState) {
         super(actionId, userId, timestamp, ActionType.RESURRECT, shapeId, prevState, newState);
 
         if (!prevState.isDeleted()) {

@@ -1,9 +1,9 @@
 /*
  * -----------------------------------------------------------------------------
- *  File: DeleteShapeAction.java
- *  Owner: Gajula Sri Siva Sai Shashank
- *  Roll Number: 112201014
- *  Module: Canvas
+ * File: DeleteShapeAction.java
+ * Owner: Gajula Sri Siva Sai Shashank
+ * Roll Number: 112201014
+ * Module: Canvas
  *
  * -----------------------------------------------------------------------------
  */
@@ -46,8 +46,12 @@ public class DeleteShapeAction extends Action {
      * @param prevState The state before the action (isDeleted=false).
      * @param newState  The state after the action (isDeleted=true).
      */
-    public DeleteShapeAction(final String actionId, final String userId, final long timestamp,
-                             final ShapeId shapeId, final ShapeState prevState, final ShapeState newState) {
+    public DeleteShapeAction(final String actionId,
+                             final String userId,
+                             final long timestamp,
+                             final ShapeId shapeId,
+                             final ShapeState prevState,
+                             final ShapeState newState) {
         super(actionId, userId, timestamp, ActionType.DELETE, shapeId, prevState, newState);
 
         if (prevState.isDeleted()) {

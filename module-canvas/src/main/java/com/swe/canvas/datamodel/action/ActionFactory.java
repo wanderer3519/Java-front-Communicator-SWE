@@ -1,9 +1,9 @@
 /*
  * -----------------------------------------------------------------------------
- *  File: ActionFactory.java
- *  Owner: Gajula Sri Siva Sai Shashank
- *  Roll Number: 112201014
- *  Module: Canvas
+ * File: ActionFactory.java
+ * Owner: Gajula Sri Siva Sai Shashank
+ * Roll Number: 112201014
+ * Module: Canvas
  *
  * -----------------------------------------------------------------------------
  */
@@ -14,7 +14,6 @@ import com.swe.canvas.datamodel.canvas.CanvasState;
 import com.swe.canvas.datamodel.canvas.ShapeState;
 import com.swe.canvas.datamodel.shape.Shape;
 import com.swe.canvas.datamodel.shape.ShapeId;
-
 import java.util.UUID;
 
 /**
@@ -80,15 +79,17 @@ public class ActionFactory {
     /**
      * Creates a new action to modify an existing shape.
      *
-     * @param canvasState The current state of the canvas (to get prevState).
-     * @param shapeId     The ID of the shape to modify.
+     * @param canvasState   The current state of the canvas (to get prevState).
+     * @param shapeId       The ID of the shape to modify.
      * @param modifiedShape A shape object containing the *new* properties.
-     * @param userId      The user performing the action.
+     * @param userId        The user performing the action.
      * @return A new {@link ModifyShapeAction}.
      * @throws IllegalStateException if the shape does not exist or is deleted.
      */
-    public Action createModifyAction(final CanvasState canvasState, final ShapeId shapeId,
-                                     final Shape modifiedShape, final String userId) {
+    public Action createModifyAction(final CanvasState canvasState,
+                                     final ShapeId shapeId,
+                                     final Shape modifiedShape,
+                                     final String userId) {
 
         final ShapeState prevState = canvasState.getShapeState(shapeId);
         if (prevState == null || prevState.isDeleted()) {
@@ -169,12 +170,13 @@ public class ActionFactory {
         // We must update the lastUpdatedBy field and timestamp in the "new" state
         // of the inverse action.
         final ShapeState inverseNewState;
+        final Shape shapeCopy;
 
         switch (actionToUndo.getActionType()) {
             case CREATE:
                 // Inverse of Create is Delete
                 // The new state for the delete must have an updated timestamp and user
-                Shape shapeCopy = originalNewState.getShape().copy();
+                shapeCopy = originalNewState.getShape().copy();
                 shapeCopy.setLastUpdatedBy(userId);
                 inverseNewState = new ShapeState(shapeCopy, true, timestamp);
 
