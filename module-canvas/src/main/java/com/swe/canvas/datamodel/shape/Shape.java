@@ -48,37 +48,37 @@ public abstract class Shape implements Serializable {
     /**
      * Unique identifier for this shape.
      */
-    protected final ShapeId shapeId;
+    private final ShapeId shapeId;
 
     /**
      * Identifier of the user who created this shape.
      */
-    protected final String createdBy;
+    private final String createdBy;
 
     /**
      * Type of the shape (e.g., RECTANGLE, LINE, CIRCLE).
      */
-    protected final ShapeType shapeType;
+    private final ShapeType shapeType;
 
     /**
      * List of defining points for the shape (e.g., corners or control points).
      */
-    protected List<Point> points;
+    private List<Point> points;
 
     /**
      * Thickness of the shape’s outline.
      */
-    protected double thickness;
+    private double thickness;
 
     /**
      * Color used to render the shape.
      */
-    protected Color color;
+    private Color color;
 
     /**
      * Identifier of the user who last modified this shape.
      */
-    protected String lastUpdatedBy;
+    private String lastUpdatedBy;
 
     /**
      * Constructs a new {@code Shape} instance with the given properties.

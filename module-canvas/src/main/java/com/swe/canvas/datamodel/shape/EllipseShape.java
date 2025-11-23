@@ -23,11 +23,6 @@ import java.util.List;
  * of this imaginary box (e.g., Top-Left and Bottom-Right). The rendering
  * engine inscribes the ellipse within these bounds.</p>
  *
- * 
-
-[Image of ellipse bounding box geometry]
-
- *
  * <p><b>Thread Safety:</b> This class is not thread-safe. Synchronization
  * must be handled by the state manager (CanvasState).</p>
  *
