@@ -25,6 +25,14 @@ import javafx.scene.paint.Color;
 import javafx.scene.transform.Scale;
 import javafx.scene.transform.Translate;
 
+import javafx.embed.swing.SwingFXUtils;
+import javafx.scene.image.WritableImage;
+import javafx.stage.FileChooser;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+
 /**
  * Controller for the fxml view.
  * Now includes Pan and Zoom logic, and passes transient shape to renderer.
@@ -39,6 +47,7 @@ public class CanvasController {
     @FXML private ToggleButton ellipseBtn;
     @FXML private ToggleButton lineBtn;
     @FXML private ToggleButton triangleBtn;
+    @FXML private Button captureBtn;
     @FXML private Slider sizeSlider;
     @FXML private ColorPicker colorPicker;
     @FXML private Button deleteBtn;
@@ -289,6 +298,30 @@ public class CanvasController {
     @FXML
     private void onDelete() {
         viewModel.deleteSelectedShape();
+    }
+
+    @FXML
+    private void onCapture() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Save Canvas as PNG");
+        fileChooser.setInitialFileName("canvas-capture.png");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG files (*.png)", "*.png"));
+
+        File file = fileChooser.showSaveDialog(canvas.getScene().getWindow());
+
+        if (file != null) {
+            try {
+                WritableImage writableImage = new WritableImage((int) canvas.getWidth(), (int) canvas.getHeight());
+                canvas.snapshot(null, writableImage);
+                BufferedImage bufferedImage = SwingFXUtils.fromFXImage(writableImage, null);
+                ImageIO.write(bufferedImage, "png", file);
+                System.out.println("Canvas captured and saved to: " + file.getAbsolutePath());
+            } catch (IOException ex) {
+                System.err.println("Error capturing or saving canvas: " + ex.getMessage());
+            }
+        } else {
+            System.out.println("Canvas capture cancelled by user.");
+        }
     }
     
     @FXML
