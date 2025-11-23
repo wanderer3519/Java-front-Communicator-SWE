@@ -1,3 +1,13 @@
+/*
+ * -----------------------------------------------------------------------------
+ * File: Shape.java
+ * Owner: Gajjala Bhavani Shankar
+ * Roll Number : 112201026
+ * Module : Canvas
+ *
+ * -----------------------------------------------------------------------------
+ */
+
 package com.swe.canvas.datamodel.shape;
 
 import java.awt.Color;
@@ -10,79 +20,111 @@ import java.util.Objects;
 /**
  * Abstract base class representing a drawable geometric shape on a canvas.
  *
- * <p>This class defines the common properties and behaviors shared by all shapes,
- * such as position points, color, stroke thickness, and creator metadata.
- * Concrete shape types (e.g., Rectangle, Circle, Line) extend this class to
- * implement specific geometry and drawing logic.</p>
+ * <p>This class acts as the blueprint for all graphical elements in our application.
+ * It holds the shared state that every shape needs: where it is (points), what it
+ * looks like (color, thickness), and who owns it (creator metadata).</p>
  *
- * <p><b>Thread Safety:</b> Not thread-safe. Instances are typically managed by
- * higher-level components like {@code CanvasState} or {@code ShapeManager}.</p>
+ * <p>Concrete implementations (like Rectangle or Circle) will extend this to provide
+ * the specific math needed to draw themselves.</p>
  *
- * @author 
- *     Gajjala Bhavani Shankar
+ * <p><b>Thread Safety:</b> This class is mutable and not thread-safe. Synchronization
+ * should be handled by the managing controller (like the CanvasState).</p>
+ *
+ * @author Gajjala Bhavani Shankar
  */
 public abstract class Shape implements Serializable {
 
-    /** Used for Java serialization. */
+    /**
+     * Used for Java serialization version control.
+     */
     @Serial
     private static final long serialVersionUID = 1L;
 
-    /** Unique identifier for this shape. */
+    /**
+     * The length of the ID substring used in toString() for brevity.
+     */
+    private static final int ID_DISPLAY_LENGTH = 8;
+
+    /**
+     * Unique identifier for this shape.
+     */
     protected final ShapeId shapeId;
 
-    /** List of defining points for the shape (e.g., corners or control points). */
-    protected List<Point> points;
-
-    /** Thickness of the shape’s outline. */
-    protected double thickness;
-
-    /** Color used to render the shape. */
-    protected Color color;
-
-    /** Identifier of the user who created this shape. */
+    /**
+     * Identifier of the user who created this shape.
+     */
     protected final String createdBy;
 
-    /** Identifier of the user who last modified this shape. */
-    protected String lastUpdatedBy;
-
-    /** Type of the shape (e.g., RECTANGLE, LINE, CIRCLE). */
+    /**
+     * Type of the shape (e.g., RECTANGLE, LINE, CIRCLE).
+     */
     protected final ShapeType shapeType;
+
+    /**
+     * List of defining points for the shape (e.g., corners or control points).
+     */
+    protected List<Point> points;
+
+    /**
+     * Thickness of the shape’s outline.
+     */
+    protected double thickness;
+
+    /**
+     * Color used to render the shape.
+     */
+    protected Color color;
+
+    /**
+     * Identifier of the user who last modified this shape.
+     */
+    protected String lastUpdatedBy;
 
     /**
      * Constructs a new {@code Shape} instance with the given properties.
      *
-     * @param shapeId_       The unique shape identifier (non-null).
-     * @param shapeType_     The shape type enumeration (non-null).
-     * @param points_        The list of defining points (non-null).
-     * @param thickness_     The line thickness.
-     * @param color_         The color used to render the shape (non-null).
-     * @param createdBy_     The identifier of the user who created this shape (non-null).
-     * @param lastUpdatedBy_ The identifier of the user who last modified this shape (non-null).
+     * <p>This constructor initializes all the mandatory fields. We perform strict
+     * null checks here to prevent "partially initialized" shapes from existing
+     * in the system.</p>
+     *
+     * @param identifier     The unique shape identifier.
+     * @param type           The shape type enumeration.
+     * @param shapePoints    The list of defining points.
+     * @param lineThickness  The line thickness.
+     * @param shapeColor     The color used to render the shape.
+     * @param creatorId      The identifier of the user who created this shape.
+     * @param updaterId      The identifier of the user who last modified this shape.
      * @throws NullPointerException if any required argument is {@code null}.
      */
-    protected Shape(final ShapeId shapeId_, final ShapeType shapeType_, final List<Point> points_,
-                    final double thickness_, final Color color_, final String createdBy_, final String lastUpdatedBy_) {
-        this.shapeId = Objects.requireNonNull(shapeId_, "shapeId cannot be null");
-        this.shapeType = Objects.requireNonNull(shapeType_, "shapeType cannot be null");
-        this.points = Objects.requireNonNull(points_, "points list cannot be null");
-        this.thickness = Objects.requireNonNull(thickness_, "thickness cannot be null");
-        this.color = Objects.requireNonNull(color_, "color cannot be null");
-        this.createdBy = Objects.requireNonNull(createdBy_, "createdBy cannot be null");
-        this.lastUpdatedBy = Objects.requireNonNull(lastUpdatedBy_, "lastUpdatedBy cannot be null");
+    protected Shape(final ShapeId identifier,
+                    final ShapeType type,
+                    final List<Point> shapePoints,
+                    final double lineThickness,
+                    final Color shapeColor,
+                    final String creatorId,
+                    final String updaterId) {
+        this.shapeId = Objects.requireNonNull(identifier, "shapeId cannot be null");
+        this.shapeType = Objects.requireNonNull(type, "shapeType cannot be null");
+        this.points = Objects.requireNonNull(shapePoints, "points list cannot be null");
+        // Auto-boxing check for thickness is not needed as it is a primitive double
+        this.thickness = lineThickness;
+        this.color = Objects.requireNonNull(shapeColor, "color cannot be null");
+        this.createdBy = Objects.requireNonNull(creatorId, "createdBy cannot be null");
+        this.lastUpdatedBy = Objects.requireNonNull(updaterId, "lastUpdatedBy cannot be null");
     }
 
     /**
      * Translates (moves) this shape by the given offset.
      *
-     * <p>This operation shifts all points in the shape by the specified delta values
-     * along the X and Y axes. The transformation is applied in-place by updating
-     * the {@code points} list.</p>
+     * <p>This method calculates new coordinates for every point in the shape
+     * based on the input deltas (dx, dy). It effectively "slides" the shape
+     * across the canvas without changing its dimensions.</p>
      *
      * @param dx The horizontal displacement.
      * @param dy The vertical displacement.
      */
     public void translate(final double dx, final double dy) {
-        List<Point> newPoints = new ArrayList<>(points.size());
+        final List<Point> newPoints = new ArrayList<>(points.size());
         for (Point p : points) {
             newPoints.add(new Point(p.getX() + dx, p.getY() + dy));
         }
@@ -92,64 +134,72 @@ public abstract class Shape implements Serializable {
     /**
      * Creates and returns a deep copy of this shape.
      *
-     * <p>Subclasses must implement this method to ensure that all relevant
-     * fields (such as points and color) are duplicated correctly.</p>
+     * <p>Subclasses must implement this to ensure that when we clone a shape
+     * (e.g., for Copy-Paste functionality), we get a truly independent object,
+     * not just a reference to the old one.</p>
      *
      * @return A deep copy of this shape.
      */
     public abstract Shape copy();
 
     /**
-     * Gets the unique identifier of this shape.
-     * @return The unique identifier of this shape. 
+     * Retrieves the unique identifier of this shape.
+     *
+     * @return The shape ID object.
      */
     public ShapeId getShapeId() {
         return shapeId;
     }
 
     /**
-     * Gets the list of defining points for this shape.
-     * @return The list of defining points for this shape. 
+     * Retrieves the list of defining points for this shape.
+     *
+     * @return A list of Point objects.
      */
     public List<Point> getPoints() {
         return points;
     }
 
     /**
-     * Gets the line thickness of the shape.
-     * @return The line thickness of the shape. 
+     * Retrieves the line thickness of the shape.
+     *
+     * @return The thickness as a double value.
      */
     public double getThickness() {
         return thickness;
     }
 
     /**
-     * Gets the color used to render this shape.
-     * @return The color used to render this shape. 
+     * Retrieves the color used to render this shape.
+     *
+     * @return The AWT Color object.
      */
     public Color getColor() {
         return color;
     }
 
     /**
-     * Gets the user ID of the creator of this shape.
-     * @return The user ID of the creator of this shape.
+     * Retrieves the user ID of the creator.
+     *
+     * @return The creator's ID string.
      */
     public String getCreatedBy() {
         return createdBy;
     }
 
     /**
-     * Gets the user ID of the last person who updated this shape.
-     * @return The user ID of the last person who updated this shape.
+     * Retrieves the user ID of the last person who updated this shape.
+     *
+     * @return The updater's ID string.
      */
     public String getLastUpdatedBy() {
         return lastUpdatedBy;
     }
 
     /**
-     * Gets the type of this shape.
-     * @return The type of this shape. 
+     * Retrieves the type classification of this shape.
+     *
+     * @return The ShapeType enum value.
      */
     public ShapeType getShapeType() {
         return shapeType;
@@ -158,89 +208,97 @@ public abstract class Shape implements Serializable {
     /**
      * Updates the defining points of this shape.
      *
-     * Updates the defining points of this shape.
-     * @param points_ The new list of points.
+     * @param shapePoints The new list of points.
      */
-    public void setPoints(final List<Point> points_) {
-        this.points = points_;
+    public void setPoints(final List<Point> shapePoints) {
+        this.points = shapePoints;
     }
 
     /**
      * Updates the thickness of the shape’s outline.
      *
-     * @param thickness_ The new line thickness.
+     * @param lineThickness The new line thickness.
      */
-    public void setThickness(final double thickness_) {
-        this.thickness = thickness_;
+    public void setThickness(final double lineThickness) {
+        this.thickness = lineThickness;
     }
 
     /**
      * Updates the color used to render this shape.
      *
-     * @param color_ The new color.
+     * @param shapeColor The new color.
      */
-    public void setColor(final Color color_) {
-        this.color = color_;
+    public void setColor(final Color shapeColor) {
+        this.color = shapeColor;
     }
 
     /**
      * Updates the user who last modified this shape.
      *
-     * @param lastUpdatedBy_ The last updating user ID.
+     * @param updaterId The last updating user ID.
      */
-    public void setLastUpdatedBy(final String lastUpdatedBy_) {
-        this.lastUpdatedBy = lastUpdatedBy_;
+    public void setLastUpdatedBy(final String updaterId) {
+        this.lastUpdatedBy = updaterId;
     }
 
     /**
      * Compares this shape to another object for equality.
      *
-     * <p>Two shapes are considered equal if all of their defining attributes
-     * (ID, points, thickness, color, creators, and type) match exactly.</p>
+     * <p>We verify every single property. If even one pixel is different,
+     * or if the color is slightly off, the shapes are considered distinct.
+     * This is crucial for Undo/Redo operations to detect changes.</p>
      *
-     * @param o The object to compare with.
-     * @return {@code true} if the objects are equal; {@code false} otherwise.
+     * @param obj The object to compare with.
+     * @return True if the objects are identical in state.
      */
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) {
+    public boolean equals(final Object obj) {
+        if (this == obj) {
             return true;
         }
-            
-        if (o == null || getClass() != o.getClass()) {
+
+        if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
-            
-        final Shape shape = (Shape) o;
-        return Double.compare(shape.thickness, thickness) == 0 
-        && shapeId.equals(shape.shapeId)
-        && points.equals(shape.points) 
-        && color.equals(shape.color) 
-        && createdBy.equals(shape.createdBy) 
-        && lastUpdatedBy.equals(shape.lastUpdatedBy) 
-        && shapeType == shape.shapeType;
+
+        final Shape shape = (Shape) obj;
+        return Double.compare(shape.thickness, thickness) == 0
+                && shapeId.equals(shape.shapeId)
+                && points.equals(shape.points)
+                && color.equals(shape.color)
+                && createdBy.equals(shape.createdBy)
+                && lastUpdatedBy.equals(shape.lastUpdatedBy)
+                && shapeType == shape.shapeType;
     }
 
     /**
-     * Computes a hash code for this shape.
+     * Computes a hash code for this shape based on all its properties.
      *
      * @return The computed hash code.
      */
     @Override
     public int hashCode() {
-        return Objects.hash(shapeId, points, thickness, color, createdBy, lastUpdatedBy, shapeType);
+        return Objects.hash(shapeId, points, thickness, color,
+                createdBy, lastUpdatedBy, shapeType);
     }
 
-    private static final int SUBSTRING_LENGTH = 8;
-
     /**
-     * Returns a concise string representation of this shape, useful for debugging.
+     * Returns a concise string representation of this shape.
      *
-     * @return A string summarizing the shape type, ID, number of points, and color.
+     * <p>This is primarily used for debugging logs. To keep logs readable,
+     * we only print the first few characters of the Shape ID.</p>
+     *
+     * @return A summary string.
      */
     @Override
     public String toString() {
+        // Safe substring handling in case ID is somehow shorter than ID_DISPLAY_LENGTH
+        String idVal = shapeId.getValue();
+        if (idVal.length() > ID_DISPLAY_LENGTH) {
+            idVal = idVal.substring(0, ID_DISPLAY_LENGTH);
+        }
+
         return String.format("%s[id=%s, points=%d, color=%s]",
-                shapeType, shapeId.getValue().substring(0, SUBSTRING_LENGTH), points.size(), color);
+                shapeType, idVal, points.size(), color);
     }
 }

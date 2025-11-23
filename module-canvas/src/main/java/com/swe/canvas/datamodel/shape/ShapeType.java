@@ -45,5 +45,10 @@ public enum ShapeType {
     /**
      * A straight line defined by two endpoints.
      */
-    LINE
+    LINE,
+
+    /**
+     * Unknown Shape
+     */
+    UNKNOWN
 }
