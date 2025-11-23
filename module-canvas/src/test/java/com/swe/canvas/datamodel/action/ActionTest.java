@@ -20,16 +20,28 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ActionTest {
 
+    /**
+     * Concrete Stub for abstract Shape class.
+     */
     static class TestShape extends Shape {
         private static final long serialVersionUID = 1L;
+
         public TestShape(ShapeId shapeId, String userId) {
             super(shapeId, ShapeType.FREEHAND, new ArrayList<>(), 1.0, Color.BLACK, userId, userId);
         }
-        @Override public Shape copy() { return new TestShape(this.shapeId, this.createdBy); }
+
+        @Override
+        public Shape copy() {
+            return new TestShape(this.shapeId, this.createdBy);
+        }
     }
 
+    /**
+     * Concrete Stub for abstract Action class.
+     */
     static class TestAction extends Action {
         private static final long serialVersionUID = 1L;
+
         public TestAction(String actionId, String userId, long timestamp, ActionType actionType,
                           ShapeId shapeId, ShapeState prevState, ShapeState newState) {
             super(actionId, userId, timestamp, actionType, shapeId, prevState, newState);
@@ -37,7 +49,9 @@ class ActionTest {
     }
 
     private ShapeState createDummyState(String id) {
-        return new ShapeState(new TestShape(new ShapeId(id), "user-001"), false, System.currentTimeMillis());
+        // ID must be >= 8 chars to avoid StringIndexOutOfBounds in toString()
+        TestShape shape = new TestShape(new ShapeId(id), "user-001");
+        return new ShapeState(shape, false, System.currentTimeMillis());
     }
 
     @Test
@@ -75,11 +89,16 @@ class ActionTest {
         ShapeState state = createDummyState("shape-001");
         ShapeId id = new ShapeId("shape-001");
 
-        assertThrows(NullPointerException.class, () -> new TestAction(null, "u", 1L, ActionType.MODIFY, id, state, state));
-        assertThrows(NullPointerException.class, () -> new TestAction("a", null, 1L, ActionType.MODIFY, id, state, state));
-        assertThrows(NullPointerException.class, () -> new TestAction("a", "u", 1L, null, id, state, state));
-        assertThrows(NullPointerException.class, () -> new TestAction("a", "u", 1L, ActionType.MODIFY, null, state, state));
-        assertThrows(NullPointerException.class, () -> new TestAction("a", "u", 1L, ActionType.MODIFY, id, state, null));
+        assertThrows(NullPointerException.class, () ->
+                new TestAction(null, "user", 1L, ActionType.MODIFY, id, state, state));
+        assertThrows(NullPointerException.class, () ->
+                new TestAction("action", null, 1L, ActionType.MODIFY, id, state, state));
+        assertThrows(NullPointerException.class, () ->
+                new TestAction("action", "user", 1L, null, id, state, state));
+        assertThrows(NullPointerException.class, () ->
+                new TestAction("action", "user", 1L, ActionType.MODIFY, null, state, state));
+        assertThrows(NullPointerException.class, () ->
+                new TestAction("action", "user", 1L, ActionType.MODIFY, id, state, null));
     }
 
     @Test
@@ -88,14 +107,26 @@ class ActionTest {
         ShapeId id = new ShapeId("shape-001");
 
         Action a1 = new TestAction("action-id-1", "user-1", 1L, ActionType.MODIFY, id, state, state);
-        Action a2 = new TestAction("action-id-1", "user-2", 2L, ActionType.DELETE, id, state, state);
-        Action a3 = new TestAction("action-id-2", "user-1", 1L, ActionType.MODIFY, id, state, state);
+        Action a2 = new TestAction("action-id-1", "user-2", 2L, ActionType.DELETE, id, state, state); // Same Action ID
+        Action a3 = new TestAction("action-id-2", "user-1", 1L, ActionType.MODIFY, id, state, state); // Different Action ID
 
+        // Reflexive
         assertEquals(a1, a1);
+
+        // Symmetric
         assertEquals(a1, a2);
+        assertEquals(a2, a1);
+
+        // Not Equal (Different ID)
         assertNotEquals(a1, a3);
+
+        // Not Equal (Null) - Covers "o == null"
         assertNotEquals(a1, null);
 
+        // Not Equal (Different Class) - Covers "getClass() != o.getClass()"
+        assertNotEquals(a1, "I am a String, not an Action");
+
+        // HashCode consistency
         assertEquals(a1.hashCode(), a2.hashCode());
         assertNotEquals(a1.hashCode(), a3.hashCode());
     }
@@ -103,12 +134,11 @@ class ActionTest {
     @Test
     void testToString() {
         ShapeState state = createDummyState("shape-001");
-        // Use IDs >= 8 chars to prevent StringIndexOutOfBoundsException
         Action action = new TestAction("123456789", "user-test", 1L, ActionType.MODIFY, new ShapeId("shape-12345"), state, state);
 
         String str = action.toString();
         assertTrue(str.contains("MODIFY"));
         assertTrue(str.contains("user-test"));
-        assertTrue(str.contains("12345678"));
+        assertTrue(str.contains("12345678")); // Checks substring logic
     }
 }
