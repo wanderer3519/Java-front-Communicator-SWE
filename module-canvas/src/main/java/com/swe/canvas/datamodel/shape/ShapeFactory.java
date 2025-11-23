@@ -1,56 +1,67 @@
-package com.swe.canvas.datamodel.shape;
+/*
+ * -----------------------------------------------------------------------------
+ * File: ShapeFactory.java
+ * Owner: Gajjala Bhavani Shankar
+ * Roll Number : 112201026
+ * Module : Canvas
+ *
+ * -----------------------------------------------------------------------------
+ */
 
-// import com.swe.canvas.datamodel.action.ActionFactory;
+package com.swe.canvas.datamodel.shape;
 
 import java.awt.Color;
 import java.util.List;
 
 /**
- * Factory for creating concrete {@link Shape} instances.
+ * Factory class responsible for creating concrete {@link Shape} instances.
  *
- * <p>This class abstracts the instantiation logic for different shape types,
- * simplifying the creation process for the UI layer and {@link ActionFactory}.
- * </p>
+ * <p>This class encapsulates the object creation logic (The "Factory Method" pattern).
+ * It decouples the client code (like the UI or Action handlers) from the specific
+ * constructors of the shape classes. If we need to add a new shape type later,
+ * we only need to modify this class rather than every place where shapes are created.</p>
  *
- * <p><b>Thread Safety:</b> This class is stateless and therefore thread-safe.</p>
- *
- * <p><b>Design Pattern:</b> Factory Pattern</p>
+ * <p><b>Thread Safety:</b> This class is stateless and purely functional,
+ * making it inherently thread-safe.</p>
  *
  * @author Gajjala Bhavani Shankar
  */
-
-
- 
 public class ShapeFactory {
 
     /**
-     * Creates a new shape instance.
+     * Creates a new shape instance based on the provided type and properties.
      *
-     * @param shapeType_ The enum type of shape to create.
-     * @param shapeId_   The unique ID for the new shape.
-     * @param points_    The geometric points for the new shape.
-     * @param thickness_ The stroke thickness.
-     * @param color_     The shape color.
-     * @param userId_    The user creating the shape.
+     * @param type           The enum type of shape to create (e.g., RECTANGLE, LINE).
+     * @param identifier     The unique ID for the new shape.
+     * @param shapePoints    The geometric points defining the shape.
+     * @param lineThickness  The stroke thickness.
+     * @param shapeColor     The color of the shape.
+     * @param creatorId      The user ID of the creator (also sets lastUpdatedBy).
      * @return A new, concrete {@link Shape} instance.
-     * @throws IllegalArgumentException if the shapeType is unrecognized.
+     * @throws IllegalArgumentException if the shapeType is not recognized or supported.
      */
-    public Shape createShape(final ShapeType shapeType_, final ShapeId shapeId_, final List<Point> points_,
-                             final double thickness_, final Color color_, final String userId_) {
-
-        switch (shapeType_) {
+    public Shape createShape(final ShapeType type,
+                             final ShapeId identifier,
+                             final List<Point> shapePoints,
+                             final double lineThickness,
+                             final Color shapeColor,
+                             final String creatorId) {
+        
+        // We pass 'creatorId' as both the creator and the initial 'lastUpdatedBy' user.
+        switch (type) {
             case FREEHAND:
-                return new FreehandShape(shapeId_, points_, thickness_, color_, userId_, userId_);
+                return new FreehandShape(identifier, shapePoints, lineThickness, shapeColor, creatorId, creatorId);
             case RECTANGLE:
-                return new RectangleShape(shapeId_, points_, thickness_, color_, userId_, userId_);
+                return new RectangleShape(identifier, shapePoints, lineThickness, shapeColor, creatorId, creatorId);
             case ELLIPSE:
-                return new EllipseShape(shapeId_, points_, thickness_, color_, userId_, userId_);
+                return new EllipseShape(identifier, shapePoints, lineThickness, shapeColor, creatorId, creatorId);
             case TRIANGLE:
-                return new TriangleShape(shapeId_, points_, thickness_, color_, userId_, userId_);
+                return new TriangleShape(identifier, shapePoints, lineThickness, shapeColor, creatorId, creatorId);
             case LINE:
-                return new LineShape(shapeId_, points_, thickness_, color_, userId_, userId_);
+                return new LineShape(identifier, shapePoints, lineThickness, shapeColor, creatorId, creatorId);
             default:
-                throw new IllegalArgumentException("Unknown shape type: " + shapeType_);
+                // This branch handles cases where a new Enum value is added but not yet implemented here.
+                throw new IllegalArgumentException("Unknown or unsupported shape type: " + type);
         }
     }
 }
