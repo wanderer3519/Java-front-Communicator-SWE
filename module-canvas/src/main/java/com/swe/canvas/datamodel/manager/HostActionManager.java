@@ -1,5 +1,6 @@
 package com.swe.canvas.datamodel.manager;
 
+import java.util.Map;
 import java.util.Objects;
 
 import com.swe.canvas.datamodel.action.Action;
@@ -14,25 +15,21 @@ import com.swe.canvas.datamodel.serialization.DefaultActionDeserializer;
 import com.swe.canvas.datamodel.serialization.DefaultActionSerializer;
 import com.swe.canvas.datamodel.serialization.SerializationException;
 import com.swe.canvas.datamodel.serialization.SerializedAction;
+import com.swe.canvas.datamodel.serialization.ShapeSerializer;
 import com.swe.canvas.datamodel.shape.Shape;
+import com.swe.canvas.datamodel.shape.ShapeId;
 
-/**
- * Implements the host-side logic for collaboration, as specified in prompt.
- * - Owns the authoritative (master) CanvasState.
- * - Validates all incoming actions from clients.
- * - Rejects actions that have conflicts (stale prevState).
- * - Broadcasts all *valid* actions to all clients.
- */
 public class HostActionManager implements ActionManager {
 
-    private final String userId; // Host's own user ID
-    private final CanvasState canvasState; // Authoritative state
+    // ... [Fields and Constructor remain the same] ...
+    private final String userId;
+    private final CanvasState canvasState;
     private final ActionFactory actionFactory;
-    private final UndoRedoManager undoRedoManager; // Host's local undo/redo
+    private final UndoRedoManager undoRedoManager;
     private final NetworkService networkService;
     private final DefaultActionSerializer serializer;
     private final DefaultActionDeserializer deserializer;
-    private Runnable onUpdateCallback = () -> {}; // No-op default
+    private Runnable onUpdateCallback = () -> {};
 
     public HostActionManager(String userId, CanvasState canvasState, NetworkService networkService) {
         this.userId = userId;
@@ -45,68 +42,32 @@ public class HostActionManager implements ActionManager {
         this.networkService.registerHost(this);
     }
 
-    @Override
-    public ActionFactory getActionFactory() { return actionFactory; }
-    @Override
-    public CanvasState getCanvasState() { return canvasState; }
-    @Override
-    public UndoRedoManager getUndoRedoManager() { return undoRedoManager; }
-    @Override
-    public void setOnUpdate(Runnable callback) { this.onUpdateCallback = callback; }
+    @Override public ActionFactory getActionFactory() { return actionFactory; }
+    @Override public CanvasState getCanvasState() { return canvasState; }
+    @Override public UndoRedoManager getUndoRedoManager() { return undoRedoManager; }
+    @Override public void setOnUpdate(Runnable callback) { this.onUpdateCallback = callback; }
 
-    /**
-     * Validates an action against the authoritative state.
-     * This is the core logic from the prompt.
-     */
+    // ... [Existing methods: validate, applyAndBroadcast, requestCreate/Modify/Delete/Undo/Redo] ...
+
     private boolean validate(Action action) {
-        // As per prompt: "if the action type is CREATE directly he will create"
-        if (action.getActionType() == ActionType.CREATE) {
-            // A more robust check is to ensure it doesn't already exist,
-            // but following the prompt, we auto-validate CREATE.
-            return true;
-        }
-
-        // For MODIFY, DELETE, RESURRECT (from UNDO/REDO), we do the full prevState check.
+        if (action.getActionType() == ActionType.CREATE) return true;
         ShapeState currentState = canvasState.getShapeState(action.getShapeId());
         ShapeState actionPrevState = action.getPrevState();
-
-        // This Objects.equals() check is the "Optimistic Concurrency" check.
-        if (Objects.equals(currentState, actionPrevState)) {
-            return true;
-        } else {
-            // CONFLICT!
-            System.err.println("[Host] CONFLICT DETECTED for Action: " + action.getActionId());
-            System.err.println("  Action's prevState: " + actionPrevState);
-            System.err.println("  Host's currentState: " + currentState);
-            return false;
-        }
+        return Objects.equals(currentState, actionPrevState);
     }
 
-    /**
-     * Helper to apply a valid action and broadcast it.
-     */
     private void applyAndBroadcast(Action action, NetworkMessage originalMessage) {
-        // 1. Apply to host's authoritative state
         canvasState.applyState(action.getShapeId(), action.getNewState());
-        
-        // 2. Broadcast the *original* message to all clients
         networkService.broadcastMessage(originalMessage);
     }
-
-    // --- Local User Action Requests (Host is also a user) ---
-    // The Host's actions are just local requests that are auto-validated.
 
     @Override
     public void requestCreate(Shape newShape) {
         Action action = actionFactory.createCreateAction(newShape, userId);
         try {
             SerializedAction sa = serializer.serialize(action);
-            NetworkMessage msg = new NetworkMessage(MessageType.NORMAL, sa.getData());
-            // Host processes its own message (which applies state and broadcasts)
-            processIncomingMessage(msg);
-        } catch (SerializationException e) {
-            System.err.println("Host failed to serialize local action: " + e.getMessage());
-        }
+            processIncomingMessage(new NetworkMessage(MessageType.NORMAL, sa.getData()));
+        } catch (Exception e) { e.printStackTrace(); }
     }
 
     @Override
@@ -114,11 +75,8 @@ public class HostActionManager implements ActionManager {
         Action action = actionFactory.createModifyAction(canvasState, prevState.getShapeId(), modifiedShape, userId);
         try {
             SerializedAction sa = serializer.serialize(action);
-            NetworkMessage msg = new NetworkMessage(MessageType.NORMAL, sa.getData());
-            processIncomingMessage(msg);
-        } catch (Exception e) {
-            System.err.println("Host failed to serialize local action: " + e.getMessage());
-        }
+            processIncomingMessage(new NetworkMessage(MessageType.NORMAL, sa.getData()));
+        } catch (Exception e) { e.printStackTrace(); }
     }
 
     @Override
@@ -126,86 +84,92 @@ public class HostActionManager implements ActionManager {
         Action action = actionFactory.createDeleteAction(canvasState, shapeToDelete.getShapeId(), userId);
         try {
             SerializedAction sa = serializer.serialize(action);
-            NetworkMessage msg = new NetworkMessage(MessageType.NORMAL, sa.getData());
-            processIncomingMessage(msg);
-        } catch (Exception e) {
-            System.err.println("Host failed to serialize local action: " + e.getMessage());
-        }
+            processIncomingMessage(new NetworkMessage(MessageType.NORMAL, sa.getData()));
+        } catch (Exception e) { e.printStackTrace(); }
     }
 
     @Override
     public void requestUndo() {
-        Action actionToUndo = undoRedoManager.getActionToUndo(); // Gets action
+        Action actionToUndo = undoRedoManager.getActionToUndo();
         if (actionToUndo != null) {
-            Action inverseAction = actionFactory.createInverseAction(actionToUndo, userId);
+            Action inverse = actionFactory.createInverseAction(actionToUndo, userId);
             try {
-                SerializedAction sa = serializer.serialize(inverseAction);
-                NetworkMessage msg = new NetworkMessage(MessageType.UNDO, sa.getData());
-                // Host processes its own undo, which validates, applies, and broadcasts
-                processIncomingMessage(msg);
-            } catch (Exception e) {
-                System.err.println("Host failed to serialize local undo: " + e.getMessage());
-            }
+                SerializedAction sa = serializer.serialize(inverse);
+                processIncomingMessage(new NetworkMessage(MessageType.UNDO, sa.getData()));
+            } catch (Exception e) { e.printStackTrace(); }
         }
     }
 
     @Override
     public void requestRedo() {
-        Action actionToRedo = undoRedoManager.getActionToRedo(); // Gets action
+        Action actionToRedo = undoRedoManager.getActionToRedo();
         if (actionToRedo != null) {
             try {
                 SerializedAction sa = serializer.serialize(actionToRedo);
-                NetworkMessage msg = new NetworkMessage(MessageType.REDO, sa.getData());
-                processIncomingMessage(msg);
-            } catch (Exception e) {
-                System.err.println("Host failed to serialize local redo: " + e.getMessage());
-            }
+                processIncomingMessage(new NetworkMessage(MessageType.REDO, sa.getData()));
+            } catch (Exception e) { e.printStackTrace(); }
         }
     }
 
-    // --- Network-facing Method (as specified in prompt) ---
+    // =========================================================================
+    // NEW: Save / Restore Implementation
+    // =========================================================================
+
+    @Override
+    public String saveMap() {
+        // Serialize the internal map to JSON
+        return ShapeSerializer.serializeShapesMap(canvasState.getAllStates());
+    }
+
+    @Override
+    public void restoreMap(String json) {
+        try {
+            // 1. Deserialize locally
+            Map<ShapeId, ShapeState> newMap = ShapeSerializer.deserializeShapesMap(json);
+
+            // 2. Apply locally
+            canvasState.setAllStates(newMap);
+            undoRedoManager.clear(); // Clear stack on restore
+
+            // 3. Broadcast RESTORE message to clients
+            System.out.println("[Host] Broadcasting RESTORE...");
+            NetworkMessage restoreMsg = new NetworkMessage(MessageType.RESTORE, null, json);
+            networkService.broadcastMessage(restoreMsg);
+
+            onUpdateCallback.run();
+        } catch (Exception e) {
+            System.err.println("[Host] Failed to restore map: " + e.getMessage());
+        }
+    }
+
+    // =========================================================================
 
     @Override
     public void processIncomingMessage(NetworkMessage message) {
+        // Host ignores incoming RESTORE (it is the source)
+        if (message.getMessageType() == MessageType.RESTORE) return;
+
         try {
             Action action = deserializer.deserialize(new SerializedAction(message.getSerializedAction()));
             if (action == null) return;
-            
+
             boolean isHostSelfAction = action.getNewState().getShape().getLastUpdatedBy().equals(userId);
 
-            // Host-side validation logic
             if (validate(action)) {
-                System.out.println("[Host] Action Validated. Applying and Broadcasting.");
-                
-                // If it's the Host's *own* action, manage its undo stack
                 if (isHostSelfAction) {
                     switch (message.getMessageType()) {
-                        case NORMAL:
-                            undoRedoManager.push(action);
-                            break;
-                        case UNDO:
-                            undoRedoManager.applyHostUndo(); // Move pointer back
-                            break;
-                        case REDO:
-                            undoRedoManager.applyHostRedo(); // Move pointer forward
-                            break;
+                        case NORMAL: undoRedoManager.push(action); break;
+                        case UNDO: undoRedoManager.applyHostUndo(); break;
+                        case REDO: undoRedoManager.applyHostRedo(); break;
                     }
                 }
-                
-                // Apply and broadcast to everyone (including self and other clients)
                 applyAndBroadcast(action, message);
-
             } else {
-                // CONFLICT: Action is invalid (stale prevState)
-                System.err.println("[Host] Action REJECTED due to conflict. No broadcast.");
-                // We do nothing, as requested in the prompt.
+                System.err.println("[Host] Conflict detected. Action rejected.");
             }
-
-            // Redraw the Host's local UI
             onUpdateCallback.run();
-
         } catch (Exception e) {
-            System.err.println("Host failed to process message: " + e.getMessage());
+            System.err.println("Host process failed: " + e.getMessage());
         }
     }
 }

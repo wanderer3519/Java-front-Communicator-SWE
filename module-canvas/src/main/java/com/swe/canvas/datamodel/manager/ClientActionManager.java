@@ -1,5 +1,7 @@
 package com.swe.canvas.datamodel.manager;
 
+import java.util.Map;
+
 import com.swe.canvas.datamodel.action.Action;
 import com.swe.canvas.datamodel.action.ActionFactory;
 import com.swe.canvas.datamodel.canvas.CanvasState;
@@ -10,25 +12,21 @@ import com.swe.canvas.datamodel.collaboration.NetworkService;
 import com.swe.canvas.datamodel.serialization.DefaultActionDeserializer;
 import com.swe.canvas.datamodel.serialization.DefaultActionSerializer;
 import com.swe.canvas.datamodel.serialization.SerializedAction;
+import com.swe.canvas.datamodel.serialization.ShapeSerializer;
 import com.swe.canvas.datamodel.shape.Shape;
+import com.swe.canvas.datamodel.shape.ShapeId;
 
-/**
- * Replaces ParticipantActionManager.
- * Implements the client-side logic from the prompt.
- * - Sends all local actions to the host for validation.
- * - Does not modify its own state until a broadcast is received.
- * - Manages a local undo/redo stack only for its *own* confirmed actions.
- */
 public class ClientActionManager implements ActionManager {
 
+    // ... [Fields and Constructor] ...
     private final String userId;
-    private final CanvasState canvasState; // Local mirror
+    private final CanvasState canvasState;
     private final ActionFactory actionFactory;
     private final UndoRedoManager undoRedoManager;
     private final NetworkService networkService;
     private final DefaultActionSerializer serializer;
     private final DefaultActionDeserializer deserializer;
-    private Runnable onUpdateCallback = () -> {}; // No-op default
+    private Runnable onUpdateCallback = () -> {};
 
     public ClientActionManager(String userId, CanvasState canvasState, NetworkService networkService) {
         this.userId = userId;
@@ -41,119 +39,92 @@ public class ClientActionManager implements ActionManager {
         this.networkService.registerClient(this);
     }
 
-    @Override
-    public ActionFactory getActionFactory() { return actionFactory; }
-    @Override
-    public CanvasState getCanvasState() { return canvasState; }
-    @Override
-    public UndoRedoManager getUndoRedoManager() { return undoRedoManager; }
-    @Override
-    public void setOnUpdate(Runnable callback) { this.onUpdateCallback = callback; }
+    @Override public ActionFactory getActionFactory() { return actionFactory; }
+    @Override public CanvasState getCanvasState() { return canvasState; }
+    @Override public UndoRedoManager getUndoRedoManager() { return undoRedoManager; }
+    @Override public void setOnUpdate(Runnable callback) { this.onUpdateCallback = callback; }
 
-    /**
-     * Serializes an action, wraps it in a message, and sends it to the host.
-     */
     private void sendActionToHost(Action action, MessageType type) {
         try {
             SerializedAction serializedAction = serializer.serialize(action);
             NetworkMessage message = new NetworkMessage(type, serializedAction.getData());
             networkService.sendMessageToHost(message);
-        } catch (Exception e) {
-            System.err.println("Client failed to send action: " + e.getMessage());
-        }
+        } catch (Exception e) { e.printStackTrace(); }
     }
 
-    // --- Local User Action Requests (as specified in prompt) ---
-
-    @Override
-    public void requestCreate(Shape newShape) {
+    // ... [Request methods identical to previous file] ...
+    @Override public void requestCreate(Shape newShape) {
         Action action = actionFactory.createCreateAction(newShape, userId);
         sendActionToHost(action, MessageType.NORMAL);
     }
-
-    @Override
-    public void requestModify(ShapeState prevState, Shape modifiedShape) {
+    @Override public void requestModify(ShapeState prevState, Shape modifiedShape) {
         Action action = actionFactory.createModifyAction(canvasState, prevState.getShapeId(), modifiedShape, userId);
         sendActionToHost(action, MessageType.NORMAL);
     }
-
-    @Override
-    public void requestDelete(ShapeState shapeToDelete) {
+    @Override public void requestDelete(ShapeState shapeToDelete) {
         Action action = actionFactory.createDeleteAction(canvasState, shapeToDelete.getShapeId(), userId);
         sendActionToHost(action, MessageType.NORMAL);
     }
+    @Override public void requestUndo() {
+        Action a = undoRedoManager.getActionToUndo();
+        if (a != null) sendActionToHost(actionFactory.createInverseAction(a, userId), MessageType.UNDO);
+    }
+    @Override public void requestRedo() {
+        Action a = undoRedoManager.getActionToRedo();
+        if (a != null) sendActionToHost(a, MessageType.REDO);
+    }
 
+    // =========================================================================
+    // NEW: Save / Restore Stubs
+    // =========================================================================
     @Override
-    public void requestUndo() {
-        Action actionToUndo = undoRedoManager.getActionToUndo(); // Gets action, does NOT move pointer
-        if (actionToUndo != null) {
-            // Create the inverse action and send it
-            Action inverseAction = actionFactory.createInverseAction(actionToUndo, userId);
-            sendActionToHost(inverseAction, MessageType.UNDO);
-        } else {
-             System.out.println("[Client " + userId + "] Nothing to undo.");
-        }
+    public String saveMap() {
+        // Client usually doesn't save, but can return its view
+        return ShapeSerializer.serializeShapesMap(canvasState.getAllStates());
     }
 
     @Override
-    public void requestRedo() {
-        Action actionToRedo = undoRedoManager.getActionToRedo(); // Gets action, does NOT move pointer
-        if (actionToRedo != null) {
-            // Send the original action again for re-application
-            sendActionToHost(actionToRedo, MessageType.REDO);
-        } else {
-            System.out.println("[Client " + userId + "] Nothing to redo.");
-        }
+    public void restoreMap(String json) {
+        // Clients usually do not trigger restore locally, they receive it via network.
+        // But if needed:
+        System.out.println("[Client] Restore triggered locally (uncommon).");
     }
 
-    // --- Network-facing Method (as specified in prompt) ---
+    // =========================================================================
 
     @Override
     public void processIncomingMessage(NetworkMessage message) {
-        System.out.println("[Client " + userId + "] Processing incoming message...");
+        // 1. Handle RESTORE
+        if (message.getMessageType() == MessageType.RESTORE) {
+            System.out.println("[Client " + userId + "] Received RESTORE command.");
+            if (message.getPayload() != null) {
+                Map<ShapeId, ShapeState> newMap = ShapeSerializer.deserializeShapesMap(message.getPayload());
+                canvasState.setAllStates(newMap);
+                undoRedoManager.clear(); // Clear stack as history is invalidated
+                onUpdateCallback.run();
+            }
+            return;
+        }
+
+        // 2. Handle Normal Actions
         try {
             Action action = deserializer.deserialize(new SerializedAction(message.getSerializedAction()));
             if (action == null) return;
 
-            // This is the key logic from the prompt
             boolean isMyAction = action.getNewState().getShape().getLastUpdatedBy().equals(userId);
-            
-            System.out.println("[Client " + userId + "] Received broadcast. IsMyAction=" + isMyAction);
-
-            // 1. ALWAYS apply the change to the local state (it's from the host)
             canvasState.applyState(action.getShapeId(), action.getNewState());
 
-            // 2. Conditionally manage the local undo/redo stack
             if (isMyAction) {
                 switch (message.getMessageType()) {
-                    case NORMAL:
-                        // This is confirmation of our action. Add it to history.
-                        System.out.println("[Client " + userId + "] My NORMAL action confirmed. Pushing to stack.");
-                        undoRedoManager.push(action);
-                        break;
-                    case UNDO:
-                        // This is confirmation of our undo. Move pointer back.
-                        System.out.println("[Client " + userId + "] My UNDO confirmed. Fixing stack.");
-                        undoRedoManager.applyHostUndo();
-                        break;
-                    case REDO:
-                        // This is confirmation of our redo. Move pointer forward.
-                        System.out.println("[Client " + userId + "] My REDO confirmed. Fixing stack.");
-                        undoRedoManager.applyHostRedo();
-                        break;
+                    case NORMAL: undoRedoManager.push(action); break;
+                    case UNDO: undoRedoManager.applyHostUndo(); break;
+                    case REDO: undoRedoManager.applyHostRedo(); break;
                 }
-            } else {
-                // This is someone else's action. We just apply it and do nothing
-                // to our local undo/redo history.
-                System.out.println("[Client " + userId + "] Other user's action. Applying state, not touching stack.");
             }
 
-            // 3. Redraw the UI
             onUpdateCallback.run();
-
         } catch (Exception e) {
             System.err.println("Client failed to process message: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 }

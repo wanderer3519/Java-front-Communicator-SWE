@@ -18,24 +18,14 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.shape.SVGPath?>
 
-<!--
-  This FXML has been updated to support Pan & Zoom.
-  1. The <Viewbox> has been REMOVED.
-  2. The <center> StackPane (fx:id="canvasContainer") now captures all mouse
-     events for panning and zooming.
-  3. The Canvas (fx:id="canvas") is inside it and handles drawing events.
--->
-
 <BorderPane prefHeight="600.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.swe.canvas.ui.CanvasController">
     <fx:define>
         <ToggleGroup fx:id="toolGroup" />
     </fx:define>
 
-    <!-- Top Toolbar (Unchanged) -->
     <top>
         <ToolBar styleClass="tool-bar">
             <HBox alignment="CENTER" spacing="0" HBox.hgrow="ALWAYS">
-                <!-- Group 1: Tools -->
                 <HBox alignment="CENTER" spacing="2.0">
                     <ToggleButton fx:id="selectBtn" styleClass="tool-button-with-label" contentDisplay="TOP" text="Select" toggleGroup="$toolGroup" onAction="#onToolSelected">
                         <graphic>
@@ -124,12 +114,26 @@
                     <Button fx:id="redoBtn" styleClass="toolbar-icon-button" contentDisplay="GRAPHIC_ONLY" onAction="#onRedo">
                         <graphic>
                             <StackPane style="-fx-pref-width: 18; -fx-pref-height: 18;">
-                                <SVGPath styleClass="svg-icon" content="M11.5,8C14.15,8 16.55,9 18.4,10.6L22,7V16H13L16.62,12.38C15.23,11.22 13.46,10.5 11.5,10.5C7.96,10.5 4.95,12.71 3.9,16L1.53,15.2C2.93,10.8 6.85,8 11.5,8Z" />
+                                <SVGPath styleClass="svg-icon" content="M11.5,8C14.15,8 16.55,9 18.4,10.6L2,7V16H13L16.62,12.38C15.23,11.22 13.46,10.5 11.5,10.5C7.96,10.5 4.95,12.71 3.9,16L1.53,15.2C2.93,10.8 6.85,8 11.5,8Z" />
                             </StackPane>
                         </graphic>
                     </Button>
 
-                    <!-- START: New Button Added Here -->
+                    <Button fx:id="saveBtn" styleClass="toolbar-icon-button" contentDisplay="GRAPHIC_ONLY" onAction="#onSave" visible="false" managed="false">
+                        <graphic>
+                            <StackPane style="-fx-pref-width: 18; -fx-pref-height: 18;">
+                                <SVGPath styleClass="svg-icon" content="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z" />
+                            </StackPane>
+                        </graphic>
+                    </Button>
+                    <Button fx:id="restoreBtn" styleClass="toolbar-icon-button" contentDisplay="GRAPHIC_ONLY" onAction="#onRestore" visible="false" managed="false">
+                        <graphic>
+                            <StackPane style="-fx-pref-width: 18; -fx-pref-height: 18;">
+                                <SVGPath styleClass="svg-icon" content="M14,2H6C4.89,2 4,2.9 4,4V20C4,21.11 4.89,22 6,22H18C19.11,22 20,21.11 20,20V8L14,2M16,18H8V16H16V18M16,14H8V12H16V14M13,9V3.5L18.5,9H13Z" />
+                            </StackPane>
+                        </graphic>
+                    </Button>
+
                     <Button fx:id="captureBtn" styleClass="toolbar-icon-button" contentDisplay="GRAPHIC_ONLY" onAction="#onCapture">
                         <graphic>
                             <StackPane style="-fx-pref-width: 18; -fx-pref-height: 18;">
@@ -137,37 +141,23 @@
                             </StackPane>
                         </graphic>
                     </Button>
-                    <!-- END: New Button Added Here -->
 
                 </HBox>
             </HBox>
         </ToolBar>
     </top>
 
-    <!-- Main drawing area -->
     <center>
-        <!--
-          The <Viewbox> is gone. This StackPane is now the "viewport"
-          and will capture pan and zoom events.
-        -->
         <StackPane fx:id="canvasContainer" style="-fx-background-color: #E0E0E0; -fx-padding: 10;"
                    onMousePressed="#onViewportMousePressed"
                    onMouseDragged="#onViewportMouseDragged"
                    onMouseReleased="#onViewportMouseReleased"
                    onScroll="#onScroll">
 
-            <!--
-              FIX: Added fx:id="canvasHolder" to this StackPane.
-              This is the "white box" that we will scale and translate.
-            -->
             <StackPane fx:id="canvasHolder" alignment="TOP_LEFT" style="-fx-background-color: white; -fx-border-color: #888; -fx-border-width: 1;">
                 <effect>
                     <DropShadow color="#0000004D" radius="10" offsetX="0" offsetY="4" />
                 </effect>
-
-                <!--
-                  The Canvas is a child. It no longer has transforms applied directly.
-                -->
                 <Canvas fx:id="canvas" width="1600" height="900"
                         onMousePressed="#onCanvasMousePressed"
                         onMouseDragged="#onCanvasMouseDragged"

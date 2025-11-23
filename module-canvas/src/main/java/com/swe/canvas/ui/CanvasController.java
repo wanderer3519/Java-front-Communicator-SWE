@@ -2,7 +2,9 @@ package com.swe.canvas.ui;
 
 import com.swe.canvas.datamodel.canvas.ShapeState;
 import com.swe.canvas.datamodel.manager.ActionManager;
-import com.swe.canvas.mvvm.CanvasViewModel; // CHANGED
+// Need to import HostActionManager to check type (or add an isHost() method to interface)
+import com.swe.canvas.datamodel.manager.HostActionManager;
+import com.swe.canvas.mvvm.CanvasViewModel;
 import com.swe.canvas.mvvm.ToolType;
 import com.swe.canvas.ui.util.ColorConverter;
 
@@ -32,11 +34,11 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 
 /**
  * Controller for the fxml view.
- * Now includes Pan and Zoom logic, and passes transient shape to renderer.
- * It is initialized with an IActionManager (Host or Client) by the Main app.
+ * Includes logic for Drawing, Pan/Zoom, and Host-specific Save/Restore.
  */
 public class CanvasController {
 
@@ -47,19 +49,26 @@ public class CanvasController {
     @FXML private ToggleButton ellipseBtn;
     @FXML private ToggleButton lineBtn;
     @FXML private ToggleButton triangleBtn;
-    @FXML private Button captureBtn;
+
     @FXML private Slider sizeSlider;
     @FXML private ColorPicker colorPicker;
+
     @FXML private Button deleteBtn;
     @FXML private Button regularizeBtn;
     @FXML private Button undoBtn;
     @FXML private Button redoBtn;
+    @FXML private Button captureBtn;
+
+    // --- NEW BUTTONS ---
+    @FXML private Button saveBtn;
+    @FXML private Button restoreBtn;
+
     @FXML private Canvas canvas;
-    @FXML private StackPane canvasContainer; 
-    @FXML private StackPane canvasHolder; 
+    @FXML private StackPane canvasContainer;
+    @FXML private StackPane canvasHolder;
 
     private CanvasViewModel viewModel;
-    private ActionManager actionManager; // To set the callback
+    private ActionManager actionManager;
     private CanvasRenderer renderer;
     private boolean isUpdatingUI = false;
 
@@ -68,37 +77,37 @@ public class CanvasController {
     private Scale canvasScale;
     private boolean isPanning = false;
     private double panStartX, panStartY;
-    
+
     private static final double ZOOM_FACTOR = 1.1;
     private static final double MAX_ZOOM = 5.0;
     private static final double MIN_ZOOM = 0.5;
 
-    /**
-     * This method must be called by the Main app to inject the
-     * correct ActionManager (Host or Client).
-     */
     public void initModel(ActionManager manager) {
         this.actionManager = manager;
-        // Generate a simple unique-enough user ID
         this.viewModel = new CanvasViewModel("user-" + System.nanoTime() % 10000, manager);
-        
-        // Now that VM is created, finish initialization
+
         initializeControls();
+
+        // --- Host vs Client UI Logic ---
+        // If we are the Host, show Save/Restore buttons
+        if (manager instanceof HostActionManager) {
+            saveBtn.setVisible(true);
+            saveBtn.setManaged(true);
+            restoreBtn.setVisible(true);
+            restoreBtn.setManaged(true);
+        } else {
+            saveBtn.setVisible(false);
+            saveBtn.setManaged(false);
+            restoreBtn.setVisible(false);
+            restoreBtn.setManaged(false);
+        }
     }
 
-    /**
-     * Initializes the view/GUI
-     */
     @FXML
     public void initialize() {
-        // We can't create the ViewModel here anymore,
-        // because it needs the IActionManager to be injected.
-        // The logic is moved to initModel() and initializeControls().
+        // Logic moved to initModel/initializeControls
     }
 
-    /**
-     * This logic is now run *after* initModel is called.
-     */
     private void initializeControls() {
         renderer = new CanvasRenderer(canvas);
 
@@ -147,9 +156,6 @@ public class CanvasController {
         canvasContainer.setOnMouseClicked(e -> canvas.requestFocus());
         canvasContainer.setOnKeyPressed(this::onKeyPressed);
 
-        // Set the redraw callback
-        // this.actionManager.setOnUpdate(this::redraw);
-        // FIX: Ensure both logic update and redraw happen on the UI thread sequentially
         this.actionManager.setOnUpdate(() -> {
             Platform.runLater(() -> {
                 if (viewModel != null) {
@@ -159,7 +165,6 @@ public class CanvasController {
             });
         });
 
-
         // Set UserData for tool selection
         freehandBtn.setUserData(ToolType.FREEHAND);
         selectBtn.setUserData(ToolType.SELECT);
@@ -167,24 +172,20 @@ public class CanvasController {
         ellipseBtn.setUserData(ToolType.ELLIPSE);
         lineBtn.setUserData(ToolType.LINE);
         triangleBtn.setUserData(ToolType.TRIANGLE);
-        
+
         redraw();
     }
 
     private void redraw() {
-        // We must run this on the JavaFX Application Thread
-        // to prevent concurrency issues from network callbacks
         Platform.runLater(() -> {
             if (renderer != null && viewModel != null) {
-                // Pass the transient/ghost shape to the renderer
                 renderer.render(viewModel.getCanvasState(), viewModel.getTransientShape(), viewModel.selectedShapeId.get(), viewModel.isDraggingSelection);
             }
         });
     }
 
-    
     // =========================================================================
-    // --- Pan and Zoom Event Handlers (Attached to canvasContainer) ---
+    // --- Pan and Zoom Handlers ---
     // =========================================================================
     @FXML
     private void onScroll(ScrollEvent event) {
@@ -200,7 +201,7 @@ public class CanvasController {
         canvasScale.setX(newScale);
         canvasScale.setY(newScale);
     }
-    
+
     @FXML
     private void onViewportMousePressed(MouseEvent event) {
         if (event.isSecondaryButtonDown()) {
@@ -233,44 +234,44 @@ public class CanvasController {
     }
 
     // =========================================================================
-    // --- Drawing Event Handlers (Attached to Canvas) ---
+    // --- Drawing Handlers ---
     // =========================================================================
     private Point2D getLogicalCoords(MouseEvent event) {
         return canvas.sceneToLocal(event.getSceneX(), event.getSceneY());
     }
 
-    @FXML 
+    @FXML
     private void onCanvasMousePressed(final MouseEvent e) {
         if (e.isPrimaryButtonDown()) {
             Point2D logicalCoords = getLogicalCoords(e);
-            viewModel.onMousePressed(logicalCoords.getX(), logicalCoords.getY()); 
+            viewModel.onMousePressed(logicalCoords.getX(), logicalCoords.getY());
             redraw();
             e.consume();
         }
     }
 
-    @FXML 
+    @FXML
     private void onCanvasMouseDragged(final MouseEvent e) {
         if (e.isPrimaryButtonDown()) {
             Point2D logicalCoords = getLogicalCoords(e);
-            viewModel.onMouseDragged(logicalCoords.getX(), logicalCoords.getY()); 
+            viewModel.onMouseDragged(logicalCoords.getX(), logicalCoords.getY());
             redraw();
             e.consume();
         }
     }
 
-    @FXML 
+    @FXML
     private void onCanvasMouseReleased(final MouseEvent e) {
         if (e.getButton() == MouseButton.PRIMARY) {
             Point2D logicalCoords = getLogicalCoords(e);
-            viewModel.onMouseReleased(logicalCoords.getX(), logicalCoords.getY()); 
+            viewModel.onMouseReleased(logicalCoords.getX(), logicalCoords.getY());
             redraw();
             e.consume();
         }
     }
 
     // =========================================================================
-    // --- Toolbar Button Handlers (Unchanged) ---
+    // --- Toolbar Button Handlers ---
     // =========================================================================
     @FXML
     private void onColorSelected(final ActionEvent event) {
@@ -295,9 +296,15 @@ public class CanvasController {
         }
     }
 
-    @FXML
-    private void onDelete() {
-        viewModel.deleteSelectedShape();
+    @FXML private void onDelete() { viewModel.deleteSelectedShape(); }
+    @FXML private void onUndo() { viewModel.undo(); }
+    @FXML private void onRedo() { viewModel.redo(); }
+    @FXML private void onRegularize() { System.out.println("Regularize button clicked (no logic assigned)."); }
+
+    private void onKeyPressed(KeyEvent event) {
+        if (event.getCode() == KeyCode.DELETE || event.getCode() == KeyCode.BACK_SPACE) {
+            viewModel.deleteSelectedShape();
+        }
     }
 
     @FXML
@@ -306,9 +313,7 @@ public class CanvasController {
         fileChooser.setTitle("Save Canvas as PNG");
         fileChooser.setInitialFileName("canvas-capture.png");
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG files (*.png)", "*.png"));
-
         File file = fileChooser.showSaveDialog(canvas.getScene().getWindow());
-
         if (file != null) {
             try {
                 WritableImage writableImage = new WritableImage((int) canvas.getWidth(), (int) canvas.getHeight());
@@ -319,27 +324,51 @@ public class CanvasController {
             } catch (IOException ex) {
                 System.err.println("Error capturing or saving canvas: " + ex.getMessage());
             }
-        } else {
-            System.out.println("Canvas capture cancelled by user.");
         }
     }
-    
+
+    // =========================================================================
+    // --- HOST ONLY: SAVE & RESTORE ---
+    // =========================================================================
+
     @FXML
-    private void onRegularize() {
-        System.out.println("Regularize button clicked (no logic assigned).");
-    }
+    private void onSave() {
+        if (actionManager == null) return;
 
-    private void onKeyPressed(KeyEvent event) {
-        if (event.getCode() == KeyCode.DELETE || event.getCode() == KeyCode.BACK_SPACE) {
-            viewModel.deleteSelectedShape();
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Save Canvas State");
+        fileChooser.setInitialFileName("canvas-state.json");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JSON files (*.json)", "*.json"));
+        File file = fileChooser.showSaveDialog(canvas.getScene().getWindow());
+
+        if (file != null) {
+            try {
+                String json = actionManager.saveMap();
+                Files.writeString(file.toPath(), json);
+                System.out.println("State saved to: " + file.getAbsolutePath());
+            } catch (Exception ex) {
+                System.err.println("Error saving state: " + ex.getMessage());
+            }
         }
     }
 
-    @FXML private void onUndo() {
-        viewModel.undo();
-    }
+    @FXML
+    private void onRestore() {
+        if (actionManager == null) return;
 
-    @FXML private void onRedo() {
-        viewModel.redo();
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Restore Canvas State");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JSON files (*.json)", "*.json"));
+        File file = fileChooser.showOpenDialog(canvas.getScene().getWindow());
+
+        if (file != null) {
+            try {
+                String json = Files.readString(file.toPath());
+                actionManager.restoreMap(json);
+                System.out.println("State restored from: " + file.getAbsolutePath());
+            } catch (Exception ex) {
+                System.err.println("Error restoring state: " + ex.getMessage());
+            }
+        }
     }
 }

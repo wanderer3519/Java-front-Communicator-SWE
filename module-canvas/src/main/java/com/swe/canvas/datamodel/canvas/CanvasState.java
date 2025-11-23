@@ -1,6 +1,7 @@
 package com.swe.canvas.datamodel.canvas;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -10,80 +11,34 @@ import java.util.stream.Collectors;
 import com.swe.canvas.datamodel.shape.Shape;
 import com.swe.canvas.datamodel.shape.ShapeId;
 
-/**
- * Manages the complete, concurrent state of the canvas.
- * (NOW INCLUDES A CALLBACK TO NOTIFY THE UI OF UPDATES)
- *
- * @author Darla Manohar
- */
 public class CanvasState {
 
-    /**
-     * The core data structure holding the state of all shapes.
-     */
     private final ConcurrentMap<ShapeId, ShapeState> state;
-
-    /**
-     * A callback to notify the UI that it needs to redraw.
-     * This is set by the ActionManager.
-     */
     private Runnable onUpdateCallback = () -> {};
 
-    /**
-     * Constructs a new, empty CanvasState.
-     */
     public CanvasState() {
         this.state = new ConcurrentHashMap<>();
     }
-    
-    /**
-     * Sets the callback function to be triggered when the state changes.
-     * This is set by the ActionManager.
-     */
+
     public void setOnUpdate(Runnable onUpdate) {
-        if (onUpdate != null) {
-            this.onUpdateCallback = onUpdate;
-        } else {
-            this.onUpdateCallback = () -> {};
-        }
+        if (onUpdate != null) this.onUpdateCallback = onUpdate;
+        else this.onUpdateCallback = () -> {};
     }
-    
-    /**
-     * Notifies the listener (the UI) that a redraw is needed.
-     * This is the method that was missing.
-     */
+
     public void notifyUpdate() {
         this.onUpdateCallback.run();
     }
 
-    /**
-     * Retrieves the current state for a given shape.
-     *
-     * @param shapeId The ID of the shape to retrieve.
-     * @return The current {@link ShapeState}, or {@code null} if the shape
-     * does not exist in the state map.
-     */
     public ShapeState getShapeState(final ShapeId shapeId) {
         return state.get(shapeId);
     }
 
-    /**
-     * Applies a new state for a shape.
-     *
-     * @param shapeId    The ID of the shape to update.
-     * @param newState   The new state to apply.
-     */
     public void applyState(final ShapeId shapeId, final ShapeState newState) {
-        Objects.requireNonNull(shapeId, "shapeId cannot be null");
-        Objects.requireNonNull(newState, "newState cannot be null");
+        Objects.requireNonNull(shapeId);
+        Objects.requireNonNull(newState);
         state.put(shapeId, newState);
     }
 
-    /**
-     * Gets a collection of all *visible* (not deleted) shapes.
-     *
-     * @return An immutable collection of {@link Shape} objects.
-     */
     public Collection<Shape> getVisibleShapes() {
         return state.values().stream()
                 .filter(shapeState -> !shapeState.isDeleted())
@@ -91,31 +46,30 @@ public class CanvasState {
                 .collect(Collectors.toUnmodifiableList());
     }
 
+    // --- NEW METHODS FOR SAVE/RESTORE ---
+
     /**
-     * Clears all state from the canvas.
+     * Returns a read-only view of the internal map for serialization.
      */
-    public void clear() {
-        state.clear();
+    public Map<ShapeId, ShapeState> getAllStates() {
+        return Collections.unmodifiableMap(state);
     }
 
-    private static final int SUBSTRING_LENGTH = 8;
-
     /**
-     * Provides a string representation of the current state for debugging.
-     *
-     * @return A string summary of the canvas state.
+     * Replaces the entire state of the canvas with the provided map.
+     * Used during restoration.
      */
-    @Override
-    public String toString() {
-        final StringBuilder sb = new StringBuilder("CanvasState:\n");
-        if (state.isEmpty()) {
-            sb.append("  [Empty]\n");
+    public void setAllStates(Map<ShapeId, ShapeState> newStates) {
+        state.clear();
+        if (newStates != null) {
+            state.putAll(newStates);
         }
-        for (Map.Entry<ShapeId, ShapeState> entry : state.entrySet()) {
-            sb.append(String.format("  - ID: %s... | State: %s\n",
-                    entry.getKey().getValue().substring(0, SUBSTRING_LENGTH),
-                    entry.getValue().toString()));
-        }
-        return sb.toString();
+        notifyUpdate();
+    }
+    // -----------------------------------
+
+    public void clear() {
+        state.clear();
+        notifyUpdate();
     }
 }
