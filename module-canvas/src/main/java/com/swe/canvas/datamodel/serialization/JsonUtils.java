@@ -11,13 +11,10 @@ import com.swe.canvas.datamodel.shape.Point;
 /**
  * A utility class containing low-level static helper methods for manually
  * parsing and constructing JSON strings, without any external libraries.
- * These methods are used by the ManualJsonConverter.
+ * Updated to handle Integers and Whitespace/Newlines from .NET JSON.
  */
 public final class JsonUtils {
 
-    /**
-     * Private constructor to prevent instantiation of utility class.
-     */
     private JsonUtils() {
     }
 
@@ -25,22 +22,13 @@ public final class JsonUtils {
     // Construction Helpers
     // =========================================================================
 
-    /**
-     * Converts a java.awt.Color to an ARGB hex string (e.g., "#FF000000").
-     */
     public static String colorToHex(final Color color) {
         if (color == null) {
             return "#00000000";
         }
-        // Color.getRGB() returns int in 0xAARRGGBB format
         return String.format("#%08X", color.getRGB());
     }
 
-    /**
-     * Helper to wrap a string value in quotes and escape internal quotes (if any).
-     * @param value The value to wrap.
-     * @return The quoted, escaped string.
-     */
     public static String jsonEscape(final String value) {
         if (value == null) {
             return "null";
@@ -52,15 +40,11 @@ public final class JsonUtils {
     // Parsing (Extraction) Helpers
     // =========================================================================
 
-    /**
-     * Converts an ARGB hex string to a java.awt.Color.
-     */
     public static Color hexToColor(final String hexString) {
         if (hexString == null || hexString.length() != 9 || !hexString.startsWith("#")) {
             return Color.BLACK;
         }
         try {
-            // Long.parseLong handles the parsing, using 'true' for alpha
             return new Color((int) Long.parseLong(hexString.substring(1), 16), true);
         } catch (NumberFormatException e) {
             return Color.BLACK;
@@ -68,68 +52,64 @@ public final class JsonUtils {
     }
 
     /**
-     * Extracts a string value associated with a key from the content.
+     * Extracts a string value. Handles whitespace around colon.
      */
     public static String extractString(final String content, final String key) {
-        // Pattern: "key":"value" or "key":value (if value is 'null')
-        final Pattern pattern = Pattern.compile(Pattern.quote("\"" + key + "\"") + ":\"(.*?)\"");
+        // Pattern: "key" \s* : \s* "value"
+        final Pattern pattern = Pattern.compile(Pattern.quote("\"" + key + "\"") + "\\s*:\\s*\"(.*?)\"");
         final Matcher matcher = pattern.matcher(content);
         return matcher.find() ? matcher.group(1) : null;
     }
 
     /**
-     * Extracts a double value associated with a key from the content.
+     * Extracts a double value (handles integers in JSON too).
      */
     public static double extractDouble(final String content, final String key) {
-        // Pattern: "key":number (Handles numbers like 2.0, 15, or 0.5)
-        final Pattern pattern = Pattern.compile(Pattern.quote("\"" + key + "\"") + ":([\\-0-9\\.]+)");
+        // Pattern: "key" \s* : \s* number
+        final Pattern pattern = Pattern.compile(Pattern.quote("\"" + key + "\"") + "\\s*:\\s*([\\-0-9\\.]+)");
         final Matcher matcher = pattern.matcher(content);
-        
+
         if (matcher.find()) {
             try {
-                // Group 1 contains the numeric string (e.g., "2.0")
                 return Double.parseDouble(matcher.group(1));
             } catch (NumberFormatException e) {
-                System.err.println("Error parsing double for key " + key + ": " + matcher.group(1));
                 return 0.0;
             }
         }
         return 0.0;
     }
 
-    /**
-     * Extracts a long value associated with a key from the content.
-     */
     public static long extractLong(final String content, final String key) {
-        // Pattern: "key":number
-        final Pattern pattern = Pattern.compile(Pattern.quote("\"" + key + "\"") + ":(\\d+)");
+        final Pattern pattern = Pattern.compile(Pattern.quote("\"" + key + "\"") + "\\s*:\\s*(\\d+)");
         final Matcher matcher = pattern.matcher(content);
         return matcher.find() ? Long.parseLong(matcher.group(1)) : 0L;
     }
 
-    /**
-     * Extracts a boolean value associated with a key from the content.
-     */
     public static boolean extractBoolean(final String content, final String key) {
-        // Pattern: "key":true|false
-        final Pattern pattern = Pattern.compile(Pattern.quote("\"" + key + "\"") + ":(true|false)");
+        final Pattern pattern = Pattern.compile(Pattern.quote("\"" + key + "\"") + "\\s*:\\s*(true|false)");
         final Matcher matcher = pattern.matcher(content);
         return matcher.find() && Boolean.parseBoolean(matcher.group(1));
     }
 
     /**
-     * Extracts the Points array content.
+     * Extracts the Points array content, handling newlines.
      */
     public static List<Point> extractPoints(final String content) {
         final List<Point> points = new ArrayList<>();
-        // Find content between "Points":[ and ]
-        final Pattern arrayPattern = Pattern.compile(Pattern.quote("\"Points\":") + "\\[(.*?)\\]");
+
+        // (?s) enables DOTALL mode so . matches newlines
+        // Pattern: "Points" \s* : \s* [ ... ]
+        final Pattern arrayPattern = Pattern.compile("(?s)" + Pattern.quote("\"Points\":") + "\\s*\\[(.*?)\\]");
         final Matcher arrayMatcher = arrayPattern.matcher(content);
 
         if (arrayMatcher.find()) {
             final String pointsArrayContent = arrayMatcher.group(1);
-            // Pattern for individual points: {"X":123.0,"Y":456.0}
-            final Pattern pointPattern = Pattern.compile("\\{\"X\":([\\-0-9\\.]+),\"Y\":([\\-0-9\\.]+)\\}");
+
+            // Pattern for individual points: "X" \s* : \s* num , \s* "Y" \s* : \s* num
+            // We use a broader regex to catch { "X": 1, "Y": 2 } with spaces/newlines
+            final Pattern pointPattern = Pattern.compile(
+                    "(?s)\\{\\s*\"X\"\\s*:\\s*([\\-0-9\\.]+)\\s*,\\s*\"Y\"\\s*:\\s*([\\-0-9\\.]+)\\s*\\}"
+            );
             final Matcher pointMatcher = pointPattern.matcher(pointsArrayContent);
 
             while (pointMatcher.find()) {
@@ -142,52 +122,55 @@ public final class JsonUtils {
     }
 
     /**
-     * Extracts a nested JSON object string from the content.
-     * Searches for "key":{...} or "key":null.
-     * This method is complex as it has to handle JSON nesting manually (curly brace counting).
+     * Extracts a nested JSON object.
+     * Uses strict brace counting, robust against whitespace.
      */
     public static String extractNestedJson(final String content, final String key) {
-        final String searchKey = "\"" + key + "\":";
-        int startIndex = content.indexOf(searchKey);
+        // Find "key"
+        String searchKey = "\"" + key + "\"";
+        int keyIndex = content.indexOf(searchKey);
+        if (keyIndex == -1) return null;
 
-        if (startIndex == -1) {
-            return null;
+        // Find colon after key
+        int colonIndex = content.indexOf(':', keyIndex + searchKey.length());
+        if (colonIndex == -1) return null;
+
+        // Scan for start of value (skip whitespace)
+        int valueStart = -1;
+        for (int i = colonIndex + 1; i < content.length(); i++) {
+            char c = content.charAt(i);
+            if (!Character.isWhitespace(c)) {
+                valueStart = i;
+                break;
+            }
         }
+        if (valueStart == -1) return null;
 
-        startIndex += searchKey.length();
+        // Check for 'null'
+        if (content.startsWith("null", valueStart)) return "null";
 
-        // Check for 'null' value
-        if (content.regionMatches(startIndex, "null", 0, 4)) {
-            return "null";
-        }
+        // Must be '{'
+        if (content.charAt(valueStart) != '{') return null;
 
-        // Must be an object, find start '{'
-        int objectStart = content.indexOf('{', startIndex);
-        if (objectStart == -1) {
-            return null;
-        }
-
+        // Brace counting
         int balance = 0;
         int objectEnd = -1;
-
-        for (int i = objectStart; i < content.length(); i++) {
+        for (int i = valueStart; i < content.length(); i++) {
             char c = content.charAt(i);
             if (c == '{') {
                 balance++;
             } else if (c == '}') {
                 balance--;
                 if (balance == 0) {
-                    objectEnd = i;
+                    objectEnd = i + 1; // Include closing brace
                     break;
                 }
             }
         }
 
         if (objectEnd != -1) {
-            // Return the object content including the outermost braces
-            return content.substring(objectStart, objectEnd + 1);
+            return content.substring(valueStart, objectEnd);
         }
-
         return null;
     }
 }

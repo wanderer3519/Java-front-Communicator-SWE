@@ -17,6 +17,10 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.StrokeLineCap;
 import javafx.scene.shape.StrokeLineJoin;
 
+/**
+ * @author Gajula Sri Siva Sai Shashank
+ */
+
 public class CanvasRenderer {
 
     private final Canvas canvas;

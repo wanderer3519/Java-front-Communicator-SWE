@@ -1,3 +1,13 @@
+/*
+ * -----------------------------------------------------------------------------
+ *  File: CanvasState.java
+ *  Owner: Darla Manohar
+ *  Roll Number: 112201034
+ *  Module: Canvas
+ *
+ * -----------------------------------------------------------------------------
+ */
+
 package com.swe.canvas.datamodel.canvas;
 
 import java.util.Collection;
