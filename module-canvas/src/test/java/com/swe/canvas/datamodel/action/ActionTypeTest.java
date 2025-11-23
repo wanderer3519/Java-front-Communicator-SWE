@@ -7,12 +7,15 @@ class ActionTypeTest {
 
     @Test
     void testEnumValues() {
+        // Verify all expected constants exist
         assertNotNull(ActionType.CREATE);
         assertNotNull(ActionType.MODIFY);
         assertNotNull(ActionType.DELETE);
         assertNotNull(ActionType.RESURRECT);
+        assertNotNull(ActionType.UNKNOWN);
 
-        assertEquals(4, ActionType.values().length);
+        // Verify total count (Now 5)
+        assertEquals(5, ActionType.values().length);
     }
 
     @Test
@@ -21,5 +24,6 @@ class ActionTypeTest {
         assertEquals(ActionType.MODIFY, ActionType.valueOf("MODIFY"));
         assertEquals(ActionType.DELETE, ActionType.valueOf("DELETE"));
         assertEquals(ActionType.RESURRECT, ActionType.valueOf("RESURRECT"));
+        assertEquals(ActionType.UNKNOWN, ActionType.valueOf("UNKNOWN"));
     }
 }
