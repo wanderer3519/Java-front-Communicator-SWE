@@ -7,6 +7,7 @@
  *
  * -----------------------------------------------------------------------------
  */
+
 package com.swe.canvas.datamodel.shape;
 
 /**
@@ -17,9 +18,7 @@ package com.swe.canvas.datamodel.shape;
  * to identify which shape type to create.
  * </p>
  *
- * @author Gajjala Bhavani Shankar
- * 
- * 
+ * @author Gajjala Bhavani Shankar 
  */
 public enum ShapeType {
     /**
@@ -48,7 +47,7 @@ public enum ShapeType {
     LINE,
 
     /**
-     * Unknown Shape
+     * Unknown Shape.
      */
     UNKNOWN
 }
