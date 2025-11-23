@@ -18,8 +18,6 @@
  *
  * <p>It also includes:
  * <ul>
- * <li>{@link com.swe.canvas.datamodel.manager.MessageQueue}: A thread-safe
- * wrapper for network message passing.</li>
  * <li>{@link com.swe.canvas.datamodel.manager.UndoRedoStack}: A thread-safe
  * manager for local undo/redo stacks.</li>
  * </ul>
