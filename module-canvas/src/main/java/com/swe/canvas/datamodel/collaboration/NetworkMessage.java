@@ -1,62 +1,117 @@
+/*
+ * -----------------------------------------------------------------------------
+ * File: NetworkMessage.java
+ * Owner: B S S Krishna
+ * Roll Number: 112201013
+ * Module: Canvas
+ * -----------------------------------------------------------------------------
+ */
+
 package com.swe.canvas.datamodel.collaboration;
 
 import java.util.Base64;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import com.swe.canvas.datamodel.serialization.JsonUtils; // Helper reuse
+
+import com.swe.canvas.datamodel.serialization.JsonUtils;
 
 /**
  * A wrapper for data sent over the network.
+ *
+ * <p>
+ * This class encapsulates the type of message (e.g., NORMAL, UNDO),
+ * the serialized binary data of an action, and an optional string payload
+ * (used primarily for RESTORE operations).
+ * </p>
  */
 public class NetworkMessage {
 
+    /** The type of the message. */
     private final MessageType messageType;
+
+    /** The serialized action data (can be null if payload is used). */
     private final byte[] serializedAction;
-    // NEW: Optional payload for RESTORE (JSON String)
+
+    /** Optional payload for operations like RESTORE (JSON String). */
     private final String payload;
 
-    // Constructor for standard actions
-    public NetworkMessage(MessageType messageType, byte[] serializedAction) {
-        this(messageType, serializedAction, null);
+    /**
+     * Constructor for standard actions without a string payload.
+     *
+     * @param type   The type of the message.
+     * @param action The serialized action bytes.
+     */
+    public NetworkMessage(final MessageType type, final byte[] action) {
+        this(type, action, null);
     }
 
-    // Constructor for RESTORE or custom payloads
-    public NetworkMessage(MessageType messageType, byte[] serializedAction, String payload) {
-        this.messageType = messageType;
-        this.serializedAction = serializedAction;
-        this.payload = payload;
+    /**
+     * Constructor for messages with an optional string payload (e.g., RESTORE).
+     *
+     * @param type    The type of the message.
+     * @param action  The serialized action bytes (can be null).
+     * @param content The string payload (can be null).
+     */
+    public NetworkMessage(final MessageType type, final byte[] action, final String content) {
+        this.messageType = type;
+        if (action != null) {
+            this.serializedAction = action.clone();
+        } else {
+            this.serializedAction = null;
+        }
+        this.payload = content;
     }
 
+    /**
+     * Gets the message type.
+     *
+     * @return The MessageType enum.
+     */
     public MessageType getMessageType() {
         return messageType;
     }
 
+    /**
+     * Gets the serialized action data.
+     *
+     * @return A copy of the byte array, or null.
+     */
     public byte[] getSerializedAction() {
-        return serializedAction;
+        if (serializedAction != null) {
+            return serializedAction.clone();
+        }
+        return null;
     }
 
+    /**
+     * Gets the string payload.
+     *
+     * @return The payload string, or null.
+     */
     public String getPayload() {
         return payload;
     }
 
     /**
      * Serializes this NetworkMessage into a JSON string.
+     *
+     * @return A JSON representation of this message.
      */
     public String serialize() {
-        StringBuilder sb = new StringBuilder();
+        final StringBuilder sb = new StringBuilder();
         sb.append("{");
-        sb.append("\"type\":\"").append(messageType.toString()).append("\"");
+        sb.append(JsonUtils.jsonEscape("type")).append(":")
+                .append(JsonUtils.jsonEscape(messageType.toString()));
 
         // Encode byte array as Base64 string if present
         if (serializedAction != null) {
-            String actionBase64 = Base64.getEncoder().encodeToString(serializedAction);
-            sb.append(",\"action\":\"").append(actionBase64).append("\"");
+            final String actionBase64 = Base64.getEncoder().encodeToString(serializedAction);
+            sb.append(",").append(JsonUtils.jsonEscape("action")).append(":")
+                    .append(JsonUtils.jsonEscape(actionBase64));
         }
 
-        // Append Payload string if present (JSON Escaped)
+        // Append Payload string if present
         if (payload != null) {
-            // Reuse JsonUtils.jsonEscape to safely wrap the payload string
-            sb.append(",\"payload\":").append(JsonUtils.jsonEscape(payload));
+            sb.append(",").append(JsonUtils.jsonEscape("payload")).append(":")
+                    .append(JsonUtils.jsonEscape(payload));
         }
 
         sb.append("}");
@@ -65,28 +120,32 @@ public class NetworkMessage {
 
     /**
      * Deserializes a JSON string back into a NetworkMessage.
+     *
+     * @param json The JSON string to deserialize.
+     * @return The NetworkMessage object, or null if deserialization fails.
      */
-    public static NetworkMessage deserialize(String json) {
-        if (json == null || json.isEmpty()) return null;
+    public static NetworkMessage deserialize(final String json) {
+        if (json == null || json.isEmpty()) {
+            return null;
+        }
 
         try {
-            // We can't use simple regex for payload if the payload itself contains JSON with quotes.
-            // We use JsonUtils for robust extraction.
-
             // 1. Extract Type
-            String typeStr = JsonUtils.extractString(json, "type");
-            MessageType type = MessageType.valueOf(typeStr);
+            final String typeStr = JsonUtils.extractString(json, "type");
+            if (typeStr == null) {
+                return null;
+            }
+            final MessageType type = MessageType.valueOf(typeStr);
 
             // 2. Extract Action (Base64)
-            String actionBase64 = JsonUtils.extractString(json, "action");
+            final String actionBase64 = JsonUtils.extractString(json, "action");
             byte[] actionBytes = null;
             if (actionBase64 != null) {
                 actionBytes = Base64.getDecoder().decode(actionBase64);
             }
 
             // 3. Extract Payload
-            // Note: extractString handles escaped quotes inside the value string
-            String payloadStr = JsonUtils.extractString(json, "payload");
+            final String payloadStr = JsonUtils.extractString(json, "payload");
 
             return new NetworkMessage(type, actionBytes, payloadStr);
 

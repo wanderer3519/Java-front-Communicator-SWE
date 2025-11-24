@@ -1,3 +1,11 @@
+/*
+ * -----------------------------------------------------------------------------
+ * File: UndoRedoManagerTest.java
+ * Owner: Gajjala Bhavani Shankar
+ * Roll Number : 112201026
+ * Module: Canvas
+ * -----------------------------------------------------------------------------
+ */
 package com.swe.canvas.datamodel.manager;
 
 import com.swe.canvas.datamodel.action.Action;
@@ -44,8 +52,7 @@ class ClientActionManagerTest {
                 1.0,
                 Color.BLACK,
                 user,
-                user
-        );
+                user);
     }
 
     private void injectMock(Object target, String fieldName, Object mockValue) throws Exception {
@@ -78,12 +85,13 @@ class ClientActionManagerTest {
 
     static class ForceExceptionAction extends Action {
         private static final long serialVersionUID = 1L;
+
         public ForceExceptionAction(ShapeId shapeId) {
             super("bad-action", "user", 100L, ActionType.UNKNOWN, shapeId, null,
                     new ShapeState(
-                            new LineShape(shapeId, new ArrayList<>(Arrays.asList(new Point(0,0), new Point(1,1))), 1.0, Color.RED, "u", "u"),
-                            false, 1L)
-            );
+                            new LineShape(shapeId, new ArrayList<>(Arrays.asList(new Point(0, 0), new Point(1, 1))),
+                                    1.0, Color.RED, "u", "u"),
+                            false, 1L));
         }
     }
 
