@@ -1,3 +1,10 @@
+/*
+ * -----------------------------------------------------------------------------
+ * File: MessageType.java
+ * Module: Canvas
+ * -----------------------------------------------------------------------------
+ */
+
 package com.swe.canvas.datamodel.collaboration;
 
 /**
@@ -22,5 +29,10 @@ public enum MessageType {
     /**
      * A restore (full state reset) request.
      */
-    RESTORE
+    RESTORE,
+
+    /**
+     * An unknown type, used primarily for testing default/fallback paths.
+     */
+    UNKNOWN
 }
