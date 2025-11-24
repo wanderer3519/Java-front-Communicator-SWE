@@ -5,7 +5,7 @@
  * design patterns:
  * <ul>
  * <li><b>Strategy Pattern:</b> {@link com.swe.canvas.datamodel.manager.ActionManager}
- * is an interface implemented by {@link com.swe.canvas.datamodel.manager.HostActionManager}
+ * is an interface implemented by {@link com.swe.canvas.datamodel.manager.HostActionManagerTest}
  * and {@link com.swe.canvas.datamodel.manager.ParticipantActionManager}. The system's
  * behavior for processing actions changes based on which strategy (i.e., role)
  * is active.</li>

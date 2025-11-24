@@ -1,3 +1,12 @@
+/*
+ * -----------------------------------------------------------------------------
+ * File: HostActionManager.java
+ * Owner: Gajjala Bhavani Shankar
+ * Roll Number : 112201026
+ * Module: Canvas
+ * -----------------------------------------------------------------------------
+ */
+
 package com.swe.canvas.datamodel.manager;
 
 import java.util.Map;
@@ -13,28 +22,76 @@ import com.swe.canvas.datamodel.collaboration.NetworkMessage;
 import com.swe.canvas.datamodel.collaboration.NetworkService;
 import com.swe.canvas.datamodel.serialization.DefaultActionDeserializer;
 import com.swe.canvas.datamodel.serialization.DefaultActionSerializer;
-import com.swe.canvas.datamodel.serialization.SerializationException;
 import com.swe.canvas.datamodel.serialization.SerializedAction;
 import com.swe.canvas.datamodel.serialization.ShapeSerializer;
 import com.swe.canvas.datamodel.shape.Shape;
 import com.swe.canvas.datamodel.shape.ShapeId;
 
+/**
+ * The ActionManager implementation for the Host role.
+ *
+ * <p>
+ * The Host is the source of truth. It validates incoming actions against
+ * the current state, manages the central Undo/Redo stack, and broadcasts
+ * confirmed actions to all clients.
+ * </p>
+ */
 public class HostActionManager implements ActionManager {
 
-    // ... [Fields and Constructor remain the same] ...
+    /**
+     * The unique identifier of the host user.
+     */
     private final String userId;
-    private final CanvasState canvasState;
-    private final ActionFactory actionFactory;
-    private final UndoRedoManager undoRedoManager;
-    private final NetworkService networkService;
-    private final DefaultActionSerializer serializer;
-    private final DefaultActionDeserializer deserializer;
-    private Runnable onUpdateCallback = () -> {};
 
-    public HostActionManager(String userId, CanvasState canvasState, NetworkService networkService) {
-        this.userId = userId;
-        this.canvasState = canvasState;
-        this.networkService = networkService;
+    /**
+     * The central state of the canvas managed by the host.
+     */
+    private final CanvasState canvasState;
+
+    /**
+     * Factory for creating action objects.
+     */
+    private final ActionFactory actionFactory;
+
+    /**
+     * Manager for the undo/redo history stack.
+     */
+    private final UndoRedoManager undoRedoManager;
+
+    /**
+     * Service for network communication.
+     */
+    private final NetworkService networkService;
+
+    /**
+     * Serializer for converting actions to bytes.
+     */
+    private final DefaultActionSerializer serializer;
+
+    /**
+     * Deserializer for converting bytes to actions.
+     */
+    private final DefaultActionDeserializer deserializer;
+
+    /**
+     * Callback to run when the state updates.
+     */
+    private Runnable onUpdateCallback = () -> {
+    };
+
+    /**
+     * Constructs a new HostActionManager.
+     *
+     * @param hostId     The unique ID of the host user.
+     * @param state      The shared canvas state.
+     * @param netService The network service for broadcasting.
+     */
+    public HostActionManager(final String hostId,
+            final CanvasState state,
+            final NetworkService netService) {
+        this.userId = hostId;
+        this.canvasState = state;
+        this.networkService = netService;
         this.actionFactory = new ActionFactory();
         this.undoRedoManager = new UndoRedoManager();
         this.serializer = new DefaultActionSerializer();
@@ -42,98 +99,127 @@ public class HostActionManager implements ActionManager {
         this.networkService.registerHost(this);
     }
 
-    @Override public ActionFactory getActionFactory() { return actionFactory; }
-    @Override public CanvasState getCanvasState() { return canvasState; }
-    @Override public UndoRedoManager getUndoRedoManager() { return undoRedoManager; }
-    @Override public void setOnUpdate(Runnable callback) { this.onUpdateCallback = callback; }
+    @Override
+    public ActionFactory getActionFactory() {
+        return actionFactory;
+    }
 
-    // ... [Existing methods: validate, applyAndBroadcast, requestCreate/Modify/Delete/Undo/Redo] ...
+    @Override
+    public CanvasState getCanvasState() {
+        return canvasState;
+    }
 
-    private boolean validate(Action action) {
-        if (action.getActionType() == ActionType.CREATE) return true;
-        ShapeState currentState = canvasState.getShapeState(action.getShapeId());
-        ShapeState actionPrevState = action.getPrevState();
+    @Override
+    public UndoRedoManager getUndoRedoManager() {
+        return undoRedoManager;
+    }
+
+    @Override
+    public void setOnUpdate(final Runnable callback) {
+        if (callback != null) {
+            this.onUpdateCallback = callback;
+        }
+    }
+
+    private boolean validate(final Action action) {
+        // CREATE actions are always valid if the ID is unique (UUIDs assumed unique)
+        if (action.getActionType() == ActionType.CREATE) {
+            return true;
+        }
+
+        // For Modify/Delete, ensure the client's view of "PrevState" matches the Host's
+        // current state.
+        final ShapeState currentState = canvasState.getShapeState(action.getShapeId());
+        final ShapeState actionPrevState = action.getPrevState();
+
+        // Use Objects.equals to handle potential nulls safely
         return Objects.equals(currentState, actionPrevState);
     }
 
-    private void applyAndBroadcast(Action action, NetworkMessage originalMessage) {
+    private void applyAndBroadcast(final Action action, final NetworkMessage originalMessage) {
         canvasState.applyState(action.getShapeId(), action.getNewState());
         networkService.broadcastMessage(originalMessage);
     }
 
     @Override
-    public void requestCreate(Shape newShape) {
-        Action action = actionFactory.createCreateAction(newShape, userId);
+    public void requestCreate(final Shape newShape) {
         try {
-            SerializedAction sa = serializer.serialize(action);
+            final Action action = actionFactory.createCreateAction(newShape, userId);
+            final SerializedAction sa = serializer.serialize(action);
             processIncomingMessage(new NetworkMessage(MessageType.NORMAL, sa.getData()));
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {
+            System.err.println("Host failed to create shape: " + e.getMessage());
+        }
     }
 
     @Override
-    public void requestModify(ShapeState prevState, Shape modifiedShape) {
-        Action action = actionFactory.createModifyAction(canvasState, prevState.getShapeId(), modifiedShape, userId);
+    public void requestModify(final ShapeState prevState, final Shape modifiedShape) {
         try {
-            SerializedAction sa = serializer.serialize(action);
+            final Action action = actionFactory.createModifyAction(
+                    canvasState, prevState.getShapeId(), modifiedShape, userId);
+            final SerializedAction sa = serializer.serialize(action);
             processIncomingMessage(new NetworkMessage(MessageType.NORMAL, sa.getData()));
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {
+            System.err.println("Host failed to modify shape: " + e.getMessage());
+        }
     }
 
     @Override
-    public void requestDelete(ShapeState shapeToDelete) {
-        Action action = actionFactory.createDeleteAction(canvasState, shapeToDelete.getShapeId(), userId);
+    public void requestDelete(final ShapeState shapeToDelete) {
         try {
-            SerializedAction sa = serializer.serialize(action);
+            final Action action = actionFactory.createDeleteAction(
+                    canvasState, shapeToDelete.getShapeId(), userId);
+            final SerializedAction sa = serializer.serialize(action);
             processIncomingMessage(new NetworkMessage(MessageType.NORMAL, sa.getData()));
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {
+            System.err.println("Host failed to delete shape: " + e.getMessage());
+        }
     }
 
     @Override
     public void requestUndo() {
-        Action actionToUndo = undoRedoManager.getActionToUndo();
-        if (actionToUndo != null) {
-            Action inverse = actionFactory.createInverseAction(actionToUndo, userId);
-            try {
-                SerializedAction sa = serializer.serialize(inverse);
+        try {
+            final Action actionToUndo = undoRedoManager.getActionToUndo();
+            if (actionToUndo != null) {
+                final Action inverse = actionFactory.createInverseAction(actionToUndo, userId);
+                final SerializedAction sa = serializer.serialize(inverse);
                 processIncomingMessage(new NetworkMessage(MessageType.UNDO, sa.getData()));
-            } catch (Exception e) { e.printStackTrace(); }
+            }
+        } catch (Exception e) {
+            System.err.println("Host failed to process undo: " + e.getMessage());
         }
     }
 
     @Override
     public void requestRedo() {
-        Action actionToRedo = undoRedoManager.getActionToRedo();
-        if (actionToRedo != null) {
-            try {
-                SerializedAction sa = serializer.serialize(actionToRedo);
+        try {
+            final Action actionToRedo = undoRedoManager.getActionToRedo();
+            if (actionToRedo != null) {
+                final SerializedAction sa = serializer.serialize(actionToRedo);
                 processIncomingMessage(new NetworkMessage(MessageType.REDO, sa.getData()));
-            } catch (Exception e) { e.printStackTrace(); }
+            }
+        } catch (Exception e) {
+            System.err.println("Host failed to process redo: " + e.getMessage());
         }
     }
 
-    // =========================================================================
-    // NEW: Save / Restore Implementation
-    // =========================================================================
-
     @Override
     public String saveMap() {
-        // Serialize the internal map to JSON
         return ShapeSerializer.serializeShapesMap(canvasState.getAllStates());
     }
 
     @Override
-    public void restoreMap(String json) {
+    public void restoreMap(final String json) {
         try {
             // 1. Deserialize locally
-            Map<ShapeId, ShapeState> newMap = ShapeSerializer.deserializeShapesMap(json);
+            final Map<ShapeId, ShapeState> newMap = ShapeSerializer.deserializeShapesMap(json);
 
             // 2. Apply locally
             canvasState.setAllStates(newMap);
-            undoRedoManager.clear(); // Clear stack on restore
+            undoRedoManager.clear();
 
             // 3. Broadcast RESTORE message to clients
-            System.out.println("[Host] Broadcasting RESTORE...");
-            NetworkMessage restoreMsg = new NetworkMessage(MessageType.RESTORE, null, json);
+            final NetworkMessage restoreMsg = new NetworkMessage(MessageType.RESTORE, null, json);
             networkService.broadcastMessage(restoreMsg);
 
             onUpdateCallback.run();
@@ -142,25 +228,32 @@ public class HostActionManager implements ActionManager {
         }
     }
 
-    // =========================================================================
-
     @Override
-    public void processIncomingMessage(NetworkMessage message) {
-        // Host ignores incoming RESTORE (it is the source)
-        if (message.getMessageType() == MessageType.RESTORE) return;
+    public void processIncomingMessage(final NetworkMessage message) {
+        // Host ignores incoming RESTORE (it originates them)
+        if (message.getMessageType() == MessageType.RESTORE) {
+            return;
+        }
 
         try {
-            Action action = deserializer.deserialize(new SerializedAction(message.getSerializedAction()));
-            if (action == null) return;
+            final SerializedAction serializedData = new SerializedAction(message.getSerializedAction());
+            final Action action = deserializer.deserialize(serializedData);
 
-            boolean isHostSelfAction = action.getNewState().getShape().getLastUpdatedBy().equals(userId);
+            if (action == null) {
+                return;
+            }
+
+            final boolean isHostSelfAction = action.getNewState()
+                    .getShape().getLastUpdatedBy().equals(userId);
 
             if (validate(action)) {
                 if (isHostSelfAction) {
                     switch (message.getMessageType()) {
-                        case NORMAL: undoRedoManager.push(action); break;
-                        case UNDO: undoRedoManager.applyHostUndo(); break;
-                        case REDO: undoRedoManager.applyHostRedo(); break;
+                        case NORMAL -> undoRedoManager.push(action);
+                        case UNDO -> undoRedoManager.applyHostUndo();
+                        case REDO -> undoRedoManager.applyHostRedo();
+                        default -> {
+                        }
                     }
                 }
                 applyAndBroadcast(action, message);
@@ -169,7 +262,7 @@ public class HostActionManager implements ActionManager {
             }
             onUpdateCallback.run();
         } catch (Exception e) {
-            System.err.println("Host process failed: " + e.getMessage());
+            System.err.println("Host process message failed: " + e.getMessage());
         }
     }
 }
