@@ -1,20 +1,19 @@
 /*
  * -----------------------------------------------------------------------------
- *  File: CanvasState.java
- *  Owner: Darla Manohar
- *  Roll Number: 112201034
- *  Module: Canvas
+ * File: ShapeState.java
+ * Owner: Darla Manohar
+ * Roll Number: 112201034
+ * Module: Canvas
  *
  * -----------------------------------------------------------------------------
  */
 
 package com.swe.canvas.datamodel.canvas;
 
-import java.io.Serializable;
-import java.util.Objects;
-
 import com.swe.canvas.datamodel.shape.Shape;
 import com.swe.canvas.datamodel.shape.ShapeId;
+import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * Represents the complete state of a single shape at a specific moment.
@@ -25,7 +24,7 @@ import com.swe.canvas.datamodel.shape.ShapeId;
  * </p>
  *
  * <p>Instances of this class are stored as the `prevState` and `newState` in
- * {@link Action} objects, allowing for
+ * {@link com.swe.canvas.datamodel.action.Action} objects, allowing for
  * validation, conflict detection, and undo/redo operations.
  * </p>
  *
@@ -37,8 +36,6 @@ import com.swe.canvas.datamodel.shape.ShapeId;
  * <p><b>Design Pattern:</b> Memento, State</p>
  *
  * @author Darla Manohar
- 
- 
  */
 public final class ShapeState implements Serializable {
 
@@ -65,19 +62,20 @@ public final class ShapeState implements Serializable {
     /**
      * Constructs a new ShapeState.
      *
-     * @param shape_        The shape snapshot. A deep copy MUST be provided.
-     * @param isDeleted_    The deletion status.
-     * @param lastModified_ The modification timestamp.
+     * @param shapeVal        The shape snapshot. A deep copy MUST be provided.
+     * @param isDeletedVal    The deletion status.
+     * @param lastModifiedVal The modification timestamp.
      */
-    public ShapeState(final Shape shape_, final boolean isDeleted_, final long lastModified_) {
+    public ShapeState(final Shape shapeVal, final boolean isDeletedVal, final long lastModifiedVal) {
         // We trust the shape is a deep copy, which Shape.copy() ensures.
-        this.shape = shape_;
-        this.isDeleted = isDeleted_;
-        this.lastModified = lastModified_;
+        this.shape = shapeVal;
+        this.isDeleted = isDeletedVal;
+        this.lastModified = lastModifiedVal;
     }
 
     /**
      * Retrieves the shape snapshot.
+     *
      * @return The shape snapshot.
      */
     public Shape getShape() {
@@ -86,18 +84,19 @@ public final class ShapeState implements Serializable {
 
     /**
      * Retrieves the shape's ID.
-     * @return The shape's ID.
+     *
+     * @return The shape's ID, or null if the shape is null.
      */
     public ShapeId getShapeId() {
         if (shape == null) {
             return null;
         }
-        
         return shape.getShapeId();
     }
 
     /**
-     * @summary Checks if the shape is soft-deleted.
+     * Checks if the shape is soft-deleted.
+     *
      * @return True if the shape is soft-deleted, false otherwise.
      */
     public boolean isDeleted() {
@@ -105,6 +104,8 @@ public final class ShapeState implements Serializable {
     }
 
     /**
+     * Gets the last modified timestamp.
+     *
      * @return The modification timestamp.
      */
     public long getLastModified() {
@@ -128,21 +129,21 @@ public final class ShapeState implements Serializable {
     }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) {
+    public boolean equals(final Object obj) {
+        if (this == obj) {
             return true;
-        } 
-        if (o == null || getClass() != o.getClass()) {
+        }
+        if (obj == null || getClass() != obj.getClass()) {
             return false;
-        } 
-        
-        final ShapeState that = (ShapeState) o;
+        }
+
+        final ShapeState that = (ShapeState) obj;
 
         // Note: We check shape equality using Objects.equals to handle
         // the null case (e.g., in a CreateAction's prevState).
         return isDeleted == that.isDeleted
-            && lastModified == that.lastModified
-            && Objects.equals(shape, that.shape);
+                && lastModified == that.lastModified
+                && Objects.equals(shape, that.shape);
     }
 
     @Override

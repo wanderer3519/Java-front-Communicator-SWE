@@ -12,7 +12,5 @@
  * </p>
  *
  * @author Darla Manohar
- 
- 
  */
 package com.swe.canvas.datamodel.canvas;
