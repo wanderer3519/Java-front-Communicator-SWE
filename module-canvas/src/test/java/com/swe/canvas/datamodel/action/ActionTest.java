@@ -32,7 +32,7 @@ class ActionTest {
 
         @Override
         public Shape copy() {
-            return new TestShape(this.shapeId, this.createdBy);
+            return new TestShape(getShapeId(), getCreatedBy());
         }
     }
 

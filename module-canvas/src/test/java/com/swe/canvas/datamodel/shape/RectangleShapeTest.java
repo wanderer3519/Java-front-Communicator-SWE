@@ -29,14 +29,20 @@ import org.junit.jupiter.api.Test;
  */
 class RectangleShapeTest {
 
+    private static final double THICKNESS = 5.0;
+    private static final double X1 = 10.0;
+    private static final double Y1 = 20.0;
+    private static final double X2 = 50.0;
+    private static final double Y2 = 60.0;
+
     /**
      * Tests the successful creation of a RectangleShape.
      */
     @Test
     void testValidConstruction() {
         final ShapeId id = new ShapeId("rect-1");
-        final List<Point> corners = Arrays.asList(new Point(0, 0), new Point(100, 50));
-        final RectangleShape rect = new RectangleShape(id, corners, 2.0, Color.BLUE, "user1", "user1");
+        final List<Point> corners = Arrays.asList(new Point(X1, Y1), new Point(X2, Y2));
+        final RectangleShape rect = new RectangleShape(id, corners, THICKNESS, Color.BLUE, "user1", "user1");
 
         Assertions.assertEquals(ShapeType.RECTANGLE, rect.getShapeType(),
             "Shape type should be RECTANGLE");
@@ -46,33 +52,33 @@ class RectangleShapeTest {
 
     /**
      * Tests that the constructor throws an exception if the number of points is incorrect.
-     * This ensures 100% coverage of the validation logic.
      */
     @Test
     void testInvalidPointCount() {
         final ShapeId id = new ShapeId("bad-rect");
-        final double thk = 1.0;
         final Color col = Color.RED;
         final String user = "user";
 
         // Case 1: Only 1 point
         final List<Point> onePoint = Collections.singletonList(new Point(0, 0));
         Assertions.assertThrows(IllegalArgumentException.class, () ->
-            new RectangleShape(id, onePoint, thk, col, user, user),
+            new RectangleShape(id, onePoint, THICKNESS, col, user, user),
             "Should throw exception for 1 point"
         );
 
         // Case 2: 3 points
-        final List<Point> threePoints = Arrays.asList(new Point(0, 0), new Point(1, 1), new Point(2, 2));
+        final List<Point> threePoints = Arrays.asList(
+            new Point(0, 0), new Point(1, 1), new Point(2, 2)
+        );
         Assertions.assertThrows(IllegalArgumentException.class, () ->
-            new RectangleShape(id, threePoints, thk, col, user, user),
+            new RectangleShape(id, threePoints, THICKNESS, col, user, user),
             "Should throw exception for 3 points"
         );
         
         // Case 3: Empty list
         final List<Point> noPoints = new ArrayList<>();
         Assertions.assertThrows(IllegalArgumentException.class, () -> 
-            new RectangleShape(id, noPoints, thk, col, user, user),
+            new RectangleShape(id, noPoints, THICKNESS, col, user, user),
             "Should throw exception for 0 points"
         );
     }
@@ -84,10 +90,10 @@ class RectangleShapeTest {
     void testCopy() {
         final ShapeId id = new ShapeId("rect-original");
         final List<Point> corners = new ArrayList<>();
-        corners.add(new Point(10, 10));
-        corners.add(new Point(50, 50));
+        corners.add(new Point(X1, Y1));
+        corners.add(new Point(X2, Y2));
 
-        final RectangleShape original = new RectangleShape(id, corners, 5.0, Color.GREEN, "creator", "editor");
+        final RectangleShape original = new RectangleShape(id, corners, THICKNESS, Color.GREEN, "creator", "editor");
         final Shape copy = original.copy();
 
         // 1. Verify it is a new instance

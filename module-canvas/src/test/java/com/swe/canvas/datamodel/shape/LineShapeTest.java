@@ -30,6 +30,10 @@ import org.junit.jupiter.api.Test;
  */
 class LineShapeTest {
 
+    private static final double THICKNESS = 3.0;
+    private static final double START_COORD = 10.0;
+    private static final double END_COORD = 100.0;
+
     /**
      * Tests the successful creation of a LineShape with valid data.
      */
@@ -38,49 +42,47 @@ class LineShapeTest {
         final ShapeId id = new ShapeId("line-1");
         final List<Point> points = Arrays.asList(
             new Point(0, 0),
-            new Point(100, 100)
+            new Point(END_COORD, END_COORD)
         );
         
-        final LineShape line = new LineShape(id, points, 5.0, Color.BLACK, "user1", "user1");
+        final LineShape line = new LineShape(id, points, THICKNESS, Color.BLACK, "user1", "user1");
 
         Assertions.assertEquals(ShapeType.LINE, line.getShapeType(),
             "Shape type should be LINE");
         Assertions.assertEquals(2, line.getPoints().size(),
             "Should store exactly 2 points");
-        Assertions.assertEquals(5.0, line.getThickness());
+        Assertions.assertEquals(THICKNESS, line.getThickness());
     }
 
     /**
      * Tests that the constructor throws an exception if the point count is invalid.
-     * This ensures we catch logic errors where a line might be initialized incorrectly.
      */
     @Test
     void testInvalidPointCount() {
         final ShapeId id = new ShapeId("bad-line");
-        final double thk = 1.0;
         final Color col = Color.RED;
         final String user = "user";
 
-        // Case 1: Single point (invalid for a line)
-        final List<Point> onePoint = Collections.singletonList(new Point(10, 10));
+        // Case 1: Single point
+        final List<Point> onePoint = Collections.singletonList(new Point(START_COORD, START_COORD));
         Assertions.assertThrows(IllegalArgumentException.class, () ->
-            new LineShape(id, onePoint, thk, col, user, user),
+            new LineShape(id, onePoint, THICKNESS, col, user, user),
             "Should throw exception for 1 point"
         );
 
-        // Case 2: Three points (invalid for a simple line segment)
+        // Case 2: Three points
         final List<Point> threePoints = Arrays.asList(
-            new Point(0, 0), new Point(10, 10), new Point(20, 20)
+            new Point(0, 0), new Point(START_COORD, START_COORD), new Point(END_COORD, END_COORD)
         );
         Assertions.assertThrows(IllegalArgumentException.class, () ->
-            new LineShape(id, threePoints, thk, col, user, user),
+            new LineShape(id, threePoints, THICKNESS, col, user, user),
             "Should throw exception for 3 points"
         );
 
         // Case 3: Empty list
         final List<Point> noPoints = new ArrayList<>();
         Assertions.assertThrows(IllegalArgumentException.class, () ->
-            new LineShape(id, noPoints, thk, col, user, user),
+            new LineShape(id, noPoints, THICKNESS, col, user, user),
             "Should throw exception for 0 points"
         );
     }
@@ -92,13 +94,13 @@ class LineShapeTest {
     void testCopy() {
         final ShapeId id = new ShapeId("line-original");
         final List<Point> points = new ArrayList<>();
-        points.add(new Point(10, 10));
-        points.add(new Point(20, 20));
+        points.add(new Point(START_COORD, START_COORD));
+        points.add(new Point(END_COORD, END_COORD));
 
-        final LineShape original = new LineShape(id, points, 3.0, Color.BLUE, "creator", "editor");
+        final LineShape original = new LineShape(id, points, THICKNESS, Color.BLUE, "creator", "editor");
         final Shape copy = original.copy();
 
-        // 1. Check reference inequality (new object)
+        // 1. Check reference inequality
         Assertions.assertNotSame(original, copy, "Copy should create a new object instance");
 
         // 2. Check content equality

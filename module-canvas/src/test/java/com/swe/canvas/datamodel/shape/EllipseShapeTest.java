@@ -30,54 +30,56 @@ import org.junit.jupiter.api.Test;
  */
 class EllipseShapeTest {
 
+    private static final double THICKNESS = 3.5;
+    private static final double WIDTH = 60.0;
+    private static final double HEIGHT = 40.0;
+
     /**
      * Tests the successful creation of an EllipseShape with valid data.
      */
     @Test
     void testValidConstruction() {
         final ShapeId id = new ShapeId("ellipse-1");
-        final List<Point> bounds = Arrays.asList(new Point(0, 0), new Point(60, 40));
+        final List<Point> bounds = Arrays.asList(new Point(0, 0), new Point(WIDTH, HEIGHT));
         
-        final EllipseShape ellipse = new EllipseShape(id, bounds, 3.0, Color.ORANGE, "user1", "user1");
+        final EllipseShape ellipse = new EllipseShape(id, bounds, THICKNESS, Color.ORANGE, "user1", "user1");
 
         Assertions.assertEquals(ShapeType.ELLIPSE, ellipse.getShapeType(),
             "Shape type should be ELLIPSE");
         Assertions.assertEquals(2, ellipse.getPoints().size(),
             "Should store exactly 2 points for bounding box");
-        Assertions.assertEquals(3.0, ellipse.getThickness());
+        Assertions.assertEquals(THICKNESS, ellipse.getThickness());
     }
 
     /**
      * Tests that the constructor throws an exception if the point count is invalid.
-     * This covers all branching logic in the validation block.
      */
     @Test
     void testInvalidPointCount() {
         final ShapeId id = new ShapeId("bad-ellipse");
-        final double thk = 1.0;
         final Color col = Color.RED;
         final String user = "user";
 
-        // Case 1: One point (Insufficient)
+        // Case 1: One point
         final List<Point> onePoint = Collections.singletonList(new Point(10, 10));
         Assertions.assertThrows(IllegalArgumentException.class, () ->
-            new EllipseShape(id, onePoint, thk, col, user, user),
+            new EllipseShape(id, onePoint, THICKNESS, col, user, user),
             "Should throw exception for 1 point"
         );
 
-        // Case 2: Three points (Too many)
+        // Case 2: Three points
         final List<Point> threePoints = Arrays.asList(
             new Point(0, 0), new Point(10, 10), new Point(20, 20)
         );
         Assertions.assertThrows(IllegalArgumentException.class, () ->
-            new EllipseShape(id, threePoints, thk, col, user, user),
+            new EllipseShape(id, threePoints, THICKNESS, col, user, user),
             "Should throw exception for 3 points"
         );
 
         // Case 3: Empty list
         final List<Point> noPoints = new ArrayList<>();
         Assertions.assertThrows(IllegalArgumentException.class, () ->
-            new EllipseShape(id, noPoints, thk, col, user, user),
+            new EllipseShape(id, noPoints, THICKNESS, col, user, user),
             "Should throw exception for 0 points"
         );
     }
@@ -90,9 +92,9 @@ class EllipseShapeTest {
         final ShapeId id = new ShapeId("ellipse-original");
         final List<Point> bounds = new ArrayList<>();
         bounds.add(new Point(10, 10));
-        bounds.add(new Point(80, 80)); // A circle bounding box
+        bounds.add(new Point(WIDTH, HEIGHT));
 
-        final EllipseShape original = new EllipseShape(id, bounds, 4.0, Color.PINK, "creator", "editor");
+        final EllipseShape original = new EllipseShape(id, bounds, THICKNESS, Color.PINK, "creator", "editor");
         final Shape copy = original.copy();
 
         // 1. Check reference inequality

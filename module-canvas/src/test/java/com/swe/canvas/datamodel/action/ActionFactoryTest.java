@@ -23,7 +23,7 @@ class ActionFactoryTest {
             super(id, ShapeType.LINE, new ArrayList<>(Arrays.asList(new Point(0,0))), t, c, user, user);
         }
         @Override public Shape copy() {
-            return new StubShape(shapeId, color, thickness, createdBy);
+            return new StubShape(getShapeId(), getColor(), getThickness(), getCreatedBy());
         }
     }
 

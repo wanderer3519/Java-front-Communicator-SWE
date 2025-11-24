@@ -80,12 +80,12 @@ public class RectangleShape extends Shape {
     @Override
     public Shape copy() {
         return new RectangleShape(
-                this.shapeId,
-                new ArrayList<>(this.points), // Deep copy of the list structure
-                this.thickness,
-                this.color,
-                this.createdBy,
-                this.lastUpdatedBy
+                getShapeId(),
+                new ArrayList<>(getPoints()), // Use getter
+                getThickness(),
+                getColor(),
+                getCreatedBy(),
+                getLastUpdatedBy()
         );
     }
 }

@@ -28,6 +28,11 @@ import org.junit.jupiter.api.Test;
  */
 class FreehandShapeTest {
 
+    private static final double TEST_THICKNESS = 2.0;
+    private static final double TEST_COORD_1 = 10.0;
+    private static final double TEST_COORD_2 = 20.0;
+    private static final double TEST_COORD_3 = 30.0;
+
     /**
      * Tests the successful creation of a FreehandShape with multiple points.
      */
@@ -36,16 +41,15 @@ class FreehandShapeTest {
         final ShapeId id = new ShapeId("free-1");
         final List<Point> stroke = Arrays.asList(
             new Point(0, 0),
-            new Point(10, 10),
-            new Point(20, 15),
-            new Point(30, 10)
+            new Point(TEST_COORD_1, TEST_COORD_1),
+            new Point(TEST_COORD_2, TEST_COORD_2)
         );
         
-        final FreehandShape shape = new FreehandShape(id, stroke, 2.0, Color.BLACK, "user1", "user1");
+        final FreehandShape shape = new FreehandShape(id, stroke, TEST_THICKNESS, Color.BLACK, "user1", "user1");
 
         Assertions.assertEquals(ShapeType.FREEHAND, shape.getShapeType(),
             "Shape type should be FREEHAND");
-        Assertions.assertEquals(4, shape.getPoints().size(),
+        Assertions.assertEquals(3, shape.getPoints().size(),
             "Should store all points provided in the list");
         Assertions.assertEquals(stroke, shape.getPoints(),
             "Points list should match the input");
@@ -57,27 +61,25 @@ class FreehandShapeTest {
     @Test
     void testSinglePointConstruction() {
         final ShapeId id = new ShapeId("dot-1");
-        final List<Point> dot = Arrays.asList(new Point(50, 50));
+        final List<Point> dot = Arrays.asList(new Point(TEST_COORD_1, TEST_COORD_1));
         
-        final FreehandShape shape = new FreehandShape(id, dot, 5.0, Color.RED, "user", "user");
+        final FreehandShape shape = new FreehandShape(id, dot, TEST_THICKNESS, Color.RED, "user", "user");
         
         Assertions.assertEquals(1, shape.getPoints().size(), "Single point freehand shape should be valid");
     }
 
     /**
      * Tests that creating a shape with an empty list throws an exception.
-     * This ensures we don't allow "invisible" empty shapes in the system.
      */
     @Test
     void testEmptyListThrowsException() {
         final ShapeId id = new ShapeId("bad-free");
         final List<Point> emptyList = new ArrayList<>();
-        final double thk = 1.0;
         final Color col = Color.BLUE;
         final String user = "user";
 
         Assertions.assertThrows(IllegalArgumentException.class, () ->
-            new FreehandShape(id, emptyList, thk, col, user, user),
+            new FreehandShape(id, emptyList, TEST_THICKNESS, col, user, user),
             "Constructor should throw exception if point list is empty"
         );
     }
@@ -89,11 +91,10 @@ class FreehandShapeTest {
     void testCopy() {
         final ShapeId id = new ShapeId("free-original");
         final List<Point> stroke = new ArrayList<>();
-        stroke.add(new Point(10, 10));
-        stroke.add(new Point(20, 20));
-        stroke.add(new Point(30, 30));
+        stroke.add(new Point(TEST_COORD_1, TEST_COORD_1));
+        stroke.add(new Point(TEST_COORD_2, TEST_COORD_2));
 
-        final FreehandShape original = new FreehandShape(id, stroke, 3.0, Color.MAGENTA, "creator", "updater");
+        final FreehandShape original = new FreehandShape(id, stroke, TEST_THICKNESS, Color.MAGENTA, "creator", "updater");
         final Shape copy = original.copy();
 
         // 1. Verify distinct objects
