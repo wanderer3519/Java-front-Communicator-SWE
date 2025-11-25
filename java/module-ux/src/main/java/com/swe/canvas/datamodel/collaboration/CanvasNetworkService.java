@@ -58,13 +58,7 @@ public class CanvasNetworkService implements NetworkService {
     @Override
     public void sendMessageToHost(NetworkMessage message) {
         String serializedMessage = message.serialize();
-        if (hostNode == null) {
-            System.err.println("CanvasNetworkService: Host node unknown, cannot send message");
-            return;
-        }
-
-        ClientNode[] host = {hostNode};
-//        network.sendData(serializedMessage.getBytes(), host, 2, 0);
+    
 
         if (this.rpc != null) {
             this.rpc.call("canvas:sendToHost", serializedMessage.getBytes());
