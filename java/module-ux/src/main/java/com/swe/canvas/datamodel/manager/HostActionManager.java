@@ -26,6 +26,9 @@ import com.swe.canvas.datamodel.serialization.ShapeSerializer;
 import com.swe.canvas.datamodel.shape.Shape;
 import com.swe.canvas.datamodel.shape.ShapeId;
 
+import com.swe.controller.RPC;
+import com.swe.controller.RPCinterface.AbstractRPC;
+
 /**
  * The ActionManager implementation for the Host role.
  *
@@ -67,6 +70,8 @@ public class HostActionManager implements ActionManager {
      */
     private Runnable onUpdateCallback = () -> { };
 
+    private AbstractRPC rpc;
+
     /**
      * Constructs a new HostActionManager.
      *
@@ -82,6 +87,9 @@ public class HostActionManager implements ActionManager {
         this.networkService = netService;
         this.actionFactory = new ActionFactory();
         this.undoRedoManager = new UndoRedoManager();
+
+        this.rpc = RPC.getInstance();
+        this.rpc.subscribe("canvas:update", this::handleUpdate);
     }
 
     @Override
@@ -211,6 +219,16 @@ public class HostActionManager implements ActionManager {
         } catch (Exception e) {
             System.err.println("[Host] Failed to restore map: " + e.getMessage());
         }
+    }
+
+    private byte[] handleUpdate(final byte[] data) {
+        // Placeholder for handling updates via RPC if needed
+        String dataString = data.toString();
+        NetworkMessage msg = NetworkMessage.deserialize(dataString);
+        
+        processIncomingMessage(msg);
+
+        return data;
     }
 
     @Override

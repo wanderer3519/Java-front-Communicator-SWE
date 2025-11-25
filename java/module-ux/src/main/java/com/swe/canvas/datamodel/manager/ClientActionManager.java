@@ -22,6 +22,9 @@ import com.swe.canvas.datamodel.shape.Shape;
 import com.swe.canvas.datamodel.shape.ShapeId;
 import java.util.Map;
 
+import com.swe.controller.RPCinterface.AbstractRPC;
+import com.swe.controller.RPC;
+
 /**
  * The ActionManager implementation for the Client role.
  *
@@ -65,6 +68,8 @@ public class ClientActionManager implements ActionManager {
     private Runnable onUpdateCallback = () -> {
     };
 
+    private final AbstractRPC rpc;
+
     /**
      * Constructs a new ClientActionManager.
      *
@@ -80,6 +85,9 @@ public class ClientActionManager implements ActionManager {
         this.networkService = netService;
         this.actionFactory = new ActionFactory();
         this.undoRedoManager = new UndoRedoManager();
+
+        this.rpc = RPC.getInstance();
+        this.rpc.subscribe("canvas:update", this::handleUpdate);
     }
 
     @Override
@@ -187,6 +195,16 @@ public class ClientActionManager implements ActionManager {
     public void restoreMap(final String json) {
         // Clients typically receive RESTORE via network, but we log if called locally
         System.out.println("[Client] Local restore requested. (No-op in typical flow)");
+    }
+
+    private byte[] handleUpdate(final byte[] data) {
+        // Placeholder for handling updates via RPC if needed
+        String dataString = data.toString();
+        NetworkMessage msg = NetworkMessage.deserialize(dataString);
+        
+        processIncomingMessage(msg);
+
+        return data;
     }
 
     @Override

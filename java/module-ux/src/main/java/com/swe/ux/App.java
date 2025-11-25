@@ -62,7 +62,7 @@ public class App extends JFrame {
     /**
      * Gets the singleton instance of the application.
      */
-    public static App getInstance(AbstractRPC rpc) {
+    public static App getInstance(final AbstractRPC rpc) {
         if (instance == null) {
             instance = new App(rpc);
         }
@@ -72,7 +72,7 @@ public class App extends JFrame {
     /**
      * Private constructor for singleton pattern.
      */
-    private App(AbstractRPC rpc) {
+    private App(final AbstractRPC rpc) {
         // Initialize services
         this.rpc = rpc;
         // Set up the main panel with card layout
@@ -96,7 +96,7 @@ public class App extends JFrame {
         add(mainPanel, BorderLayout.CENTER);
 
         // Apply theme
-        ThemeManager themeManager = ThemeManager.getInstance();
+        final ThemeManager themeManager = ThemeManager.getInstance();
         themeManager.setMainFrame(this);
         themeManager.setApp(this);
 
@@ -111,14 +111,14 @@ public class App extends JFrame {
      * Refreshes the theme for the entire application
      */
     public void refreshTheme() {
-        ThemeManager themeManager = ThemeManager.getInstance();
+        final ThemeManager themeManager = ThemeManager.getInstance();
         themeManager.applyThemeRecursively(mainPanel);
         SwingUtilities.updateComponentTreeUI(this);
         revalidate();
         repaint();
     }
 
-    private String getIPFromClientNodeString(String val) {
+    private String getIPFromClientNodeString(final String val) {
         if (!val.startsWith("ClientNode")) {
             return val;
         }
@@ -138,11 +138,11 @@ public class App extends JFrame {
 
         final UserProfile newUser = new UserProfile("", "You", ParticipantRole.STUDENT);
         // Will be set when user joins a meeting
-        MeetingViewModel meetingViewModel = new MeetingViewModel(newUser, rpc);
+        final MeetingViewModel meetingViewModel = new MeetingViewModel(newUser, rpc);
 
         // Initialize Views with their respective ViewModels
-        LoginPage loginView = new LoginPage(loginViewModel);
-        MainPage mainView = new MainPage(mainViewModel);
+        final LoginPage loginView = new LoginPage(loginViewModel);
+        final MainPage mainView = new MainPage(mainViewModel);
         MeetingPage meetingView = new MeetingPage(meetingViewModel);
 
         // Add views to card layout
@@ -156,7 +156,7 @@ public class App extends JFrame {
             if (user != null) {
                 this.currentUser = user;
                 mainViewModel.setCurrentUser(currentUser);
-                
+
                 // Load theme from cloud after user is logged in
 //                ThemeManager.getInstance().loadThemeFromCloud();
                 System.out.println("App: Theme loaded from cloud");
@@ -174,10 +174,10 @@ public class App extends JFrame {
         }));
 
         // Use an array to hold the meeting view reference for use in lambda
-        MeetingPage[] meetingViewRef = new MeetingPage[] { meetingView };
+        final MeetingPage[] meetingViewRef = new MeetingPage[]{meetingView};
 
         // Use an array to hold the current active meeting view model reference
-        MeetingViewModel[] activeMeetingViewModelRef = new MeetingViewModel[] { meetingViewModel };
+        final MeetingViewModel[] activeMeetingViewModelRef = new MeetingViewModel[]{meetingViewModel};
 
         // New participant
         // rpc.subscribe(Utils.SUBSCRIBE_AS_VIEWER, data -> {
@@ -186,10 +186,10 @@ public class App extends JFrame {
         //     meetingViewModel.addParticipant(new_user);
         //     return new byte[0];
         // });
-
         rpc.subscribe("core/updateParticipants", (data) -> {
             try {
-                Map<ClientNode, UserProfile> participantsMap = DataSerializer.deserialize(data, new TypeReference<Map<ClientNode, UserProfile>>() {});
+                final Map<ClientNode, UserProfile> participantsMap = DataSerializer.deserialize(data, new TypeReference<Map<ClientNode, UserProfile>>() {
+                });
                 System.out.println("App: participantsMap: " + participantsMap);
                 participantsMap.forEach((clientNode, userProfile) -> {
                     System.out.println("App: clientNode: " + clientNode + " userProfile: " + userProfile);
@@ -208,7 +208,7 @@ public class App extends JFrame {
         mainViewModel.startMeetingRequested.addListener(PropertyListeners.onBooleanChanged(startMeeting -> {
             if (startMeeting && currentUser != null) {
                 // First, get the meeting ID from MainViewModel by creating the meeting
-                String meetingId = mainViewModel.startMeeting();
+                final String meetingId = mainViewModel.startMeeting();
 
                 // Only proceed if we successfully got a meeting ID
                 if (meetingId == null || meetingId.trim().isEmpty()) {
@@ -218,7 +218,7 @@ public class App extends JFrame {
                 }
 
                 // Create a new meeting view model for this meeting with Instructor role
-                MeetingViewModel newMeetingViewModel = new MeetingViewModel(currentUser, "Instructor", rpc);
+                final MeetingViewModel newMeetingViewModel = new MeetingViewModel(currentUser, "Instructor", rpc);
 
                 // Update the active meeting view model reference
                 activeMeetingViewModelRef[0] = newMeetingViewModel;
@@ -261,7 +261,7 @@ public class App extends JFrame {
         mainViewModel.joinMeetingRequested.addListener(PropertyListeners.onBooleanChanged(joinMeeting -> {
             if (joinMeeting && currentUser != null) {
                 // Get the meeting code from MainViewModel
-                String meetingCode = mainViewModel.meetingCode.get();
+                final String meetingCode = mainViewModel.meetingCode.get();
 
                 // Only proceed if we have a valid meeting code
                 if (meetingCode == null || meetingCode.trim().isEmpty()) {
@@ -273,7 +273,7 @@ public class App extends JFrame {
                 mainViewModel.joinMeeting(meetingCode);
 
                 // Create a new meeting view model for joining meeting with Student role
-                MeetingViewModel newMeetingViewModel = new MeetingViewModel(currentUser, "Student", rpc);
+                final MeetingViewModel newMeetingViewModel = new MeetingViewModel(currentUser, "Student", rpc);
 
                 // Create a new MeetingPage with the new view model
                 meetingViewRef[0] = new MeetingPage(newMeetingViewModel);
@@ -329,10 +329,10 @@ public class App extends JFrame {
 
     /**
      * Shows the specified view.
-     * 
+     *
      * @param viewName The name of the view to show
      */
-    public void showView(String viewName) {
+    public void showView(final String viewName) {
         cardLayout.show(mainPanel, viewName);
 
         if (MEETING_VIEW.equals(viewName)) {
@@ -356,7 +356,7 @@ public class App extends JFrame {
     public void navigateBack() {
         if (viewHistory.size() > 1) {
             viewHistory.pop(); // Remove current view
-            String previousView = viewHistory.pop(); // Get previous view
+            final String previousView = viewHistory.pop(); // Get previous view
             showView(previousView); // Show previous view (will be added back to history)
         }
     }
@@ -364,39 +364,28 @@ public class App extends JFrame {
     /**
      * Main entry point of the application.
      */
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         int portNumber = 6942;
 
         if (args.length > 0) {
-            String port = args[0];
+            final String port = args[0];
             portNumber = Integer.parseInt(port);
         }
 
-        final AbstractRPC rpc = new RPC();
-
-        App app = App.getInstance(rpc);
+        final AbstractRPC rpc = RPC.getInstance();
 
         // Create and show the application window
-
         Thread handler = null;
         try {
             handler = rpc.connect(portNumber);
-            AbstractController nController = NetworkFront.getInstance();
+            final AbstractController nController = NetworkFront.getInstance();
             nController.consumeRPC(rpc);
         } catch (IOException | ExecutionException | InterruptedException e) {
             throw new RuntimeException(e);
         }
-
-        // try {
-        // byte[] data = rpc.call("core/register", new byte[0]).get();
-        // System.out.println("Data: " + data.length);
-        // } catch (InterruptedException | ExecutionException e) {
-        // throw new RuntimeException(e);
-        // }
-
         // Initialize JavaFX toolkit early in a separate thread to avoid macOS conflicts
         // This prevents macOS window management conflicts
-        Thread javaFXInitThread = new Thread(() -> {
+        final Thread javaFXInitThread = new Thread(() -> {
             try {
                 com.swe.ux.integration.JavaFXSwingBridge.initializeJavaFX();
             } catch (Exception e) {
@@ -413,6 +402,7 @@ public class App extends JFrame {
             // Ignore
         }
 
+        final App app = App.getInstance(rpc);
         // Run on the Event Dispatch Thread
         SwingUtilities.invokeLater(() -> {
             try {
@@ -440,10 +430,10 @@ public class App extends JFrame {
 
     /**
      * Sets the current user and updates the UI accordingly.
-     * 
+     *
      * @param user The user to set as current, or null to log out
      */
-    public void setCurrentUser(UserProfile user) {
+    public void setCurrentUser(final UserProfile user) {
         this.currentUser = user;
         // Update UI based on authentication state
         if (user != null) {

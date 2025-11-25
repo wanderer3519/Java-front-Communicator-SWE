@@ -6,7 +6,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.function.Consumer;
 
-import com.swe.app.RPC;
+import com.swe.controller.RPC;
 import com.swe.canvas.datamodel.action.ActionFactory;
 import com.swe.canvas.datamodel.canvas.CanvasState;
 import com.swe.canvas.datamodel.canvas.ShapeState;
@@ -29,8 +29,9 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.paint.Color;
 
-public class  {
+public class CanvasViewModel {
 
+    
     private final ActionManager actionManager;
     private final CanvasState canvasState;
     private final ActionFactory actionFactory;
@@ -57,21 +58,25 @@ public class  {
     private ShapeState originalShapeForDrag = null;
 
     private AbstractRPC rpc;
-    public CanvasViewModel(String userId, ActionManager actionManager) {
+
+    private static ShapeCount shapeCount = null;
+    
+    public CanvasViewModel(final String userId, final ActionManager actionManager) {
         this.rpc = RPC.getInstance();
-        
+
         this.userId = userId;
         this.actionManager = actionManager;
         this.canvasState = actionManager.getCanvasState();
         this.actionFactory = actionManager.getActionFactory();
         this.shapeFactory = new ShapeFactory();
+        shapeCount = new ShapeCount(0, 0, 0, 0, 0);
 
         rpc.subscribe("canvas:update", this::handleUpdate);
     }
 
-    private byte[] handleUpdate(byte[] data){
-        String json = data.toString();
-        NetworkMessage message = NetworkMessage.deserialize(json);
+    private byte[] handleUpdate(final byte[] data) {
+        final String json = data.toString();
+        final NetworkMessage message = NetworkMessage.deserialize(json);
 
         this.actionManager.processIncomingMessage(message);
         return new byte[0];
@@ -195,7 +200,7 @@ public class  {
         currentPoints.clear();
     }
 
-    private void showGhostShape(Shape shape) {
+    private void showGhostShape(final Shape shape) {
         transientShape = shape;
         startGhostTimer();
     }
@@ -229,12 +234,24 @@ public class  {
     private void updateGhostShape() {
         final ShapeType type;
         switch (activeTool.get()) {
-            case RECTANGLE: type = ShapeType.RECTANGLE; break;
-            case ELLIPSE: type = ShapeType.ELLIPSE; break;
-            case TRIANGLE: type = ShapeType.TRIANGLE; break;
-            case LINE: type = ShapeType.LINE; break;
-            case FREEHAND: type = ShapeType.FREEHAND; break;
-            default: type = ShapeType.FREEHAND; break;
+            case RECTANGLE:
+                type = ShapeType.RECTANGLE;
+                break;
+            case ELLIPSE:
+                type = ShapeType.ELLIPSE;
+                break;
+            case TRIANGLE:
+                type = ShapeType.TRIANGLE;
+                break;
+            case LINE:
+                type = ShapeType.LINE;
+                break;
+            case FREEHAND:
+                type = ShapeType.FREEHAND;
+                break;
+            default:
+                type = ShapeType.FREEHAND;
+                break;
         }
 
         // Creating a new shape (not delete)
@@ -255,17 +272,22 @@ public class  {
                 // FIX: Set intent to Delete
                 this.isPendingDelete = true;
 
-                Shape ghost = stateToDelete.getShape().copy();
+                final Shape ghost = stateToDelete.getShape().copy();
                 showGhostShape(ghost);
                 selectedShapeId.set(null);
             }
         }
     }
 
-    public void undo() { actionManager.requestUndo(); }
-    public void redo() { actionManager.requestRedo(); }
+    public void undo() {
+        actionManager.requestUndo();
+    }
 
-    private void updateShapeCount(ShapeType shapeType) {
+    public void redo() {
+        actionManager.requestRedo();
+    }
+
+    private void updateShapeCount(final ShapeType shapeType) {
         switch (shapeType) {
             case FREEHAND:
                 shapeCount.incrementFreeHand();
@@ -282,21 +304,27 @@ public class  {
             case TRIANGLE:
                 shapeCount.incrementTriangle();
                 break;
+            default:
+                break;
         }
     }
 
     /**
-     * FIX: Revised logic to check for conflict resolution correctly.
-     * Only clears the ghost if the server state matches the intent.
+     * FIX: Revised logic to check for conflict resolution correctly. Only
+     * clears the ghost if the server state matches the intent.
      */
     public void handleValidatedUpdate() {
-        if (transientShape == null) return;
+        if (transientShape == null) {
+            return;
+        }
 
         final ShapeId tid = transientShape.getShapeId();
-        if (tid == null) return;
+        if (tid == null) {
+            return;
+        }
 
         final ShapeState st = canvasState.getShapeState(tid);
-        boolean isDeletedInServer = (st == null || st.isDeleted());
+        final boolean isDeletedInServer = (st == null || st.isDeleted());
 
         if (isPendingDelete) {
             // CASE: We are deleting.

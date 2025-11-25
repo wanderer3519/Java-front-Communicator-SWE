@@ -6,7 +6,7 @@ import com.swe.controller.Meeting.UserProfile;
 import com.swe.controller.RPCinterface.AbstractRPC;
 import com.swe.controller.RPC;
 import com.swe.ux.model.ChatMessage;
-import com.swe.controller.RPC;
+
 import com.swe.chat.ChatMessageSerializer;
 import com.swe.ux.model.FileMessage;
 
