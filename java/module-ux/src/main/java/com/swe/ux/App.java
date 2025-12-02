@@ -11,14 +11,6 @@ import com.swe.controller.serialize.DataSerializer;
 import com.swe.networking.AbstractController;
 import com.swe.networking.NetworkFront;
 import com.swe.ux.theme.ThemeManager;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 
 import com.swe.ux.views.LoginPage;
 import com.swe.ux.views.MainPage;
@@ -28,15 +20,16 @@ import com.swe.ux.viewmodels.MainViewModel;
 import com.swe.ux.viewmodels.MeetingViewModel;
 
 import javax.swing.JFrame;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.io.IOException;
 import java.util.Map;
 import java.util.Stack;
 import java.util.concurrent.ExecutionException;
+
 import com.swe.ux.binding.PropertyListeners;
 
 /**
@@ -59,73 +52,6 @@ public class App extends JFrame {
     public static final String MAIN_VIEW = "MAIN";
     /** Meeting view identifier. */
     public static final String MEETING_VIEW = "MEETING";
-    /** Relative path to the core backend JAR at runtime. */
-    private static final String CORE_JAR_RELATIVE_PATH = "backend/core-server.jar";
-
-    /** Process handle for the backend core. */
-    private static Process backendProcess = null;
-
-    /**
-     * Starts the backend core JAR in a separate process.
-     * Uses the same JRE that is running the frontend (works with jpackage).
-     */
-    private static void startBackendCore() {
-        try {
-            // Resolve core jar relative to where THIS app is located
-            File currentJar = new File(App.class
-                    .getProtectionDomain()
-                    .getCodeSource()
-                    .getLocation()
-                    .toURI());
-
-            // If running from IDE or Maven exec, location is target/classes
-            File appDir = currentJar.getParentFile();
-            Path coreJarPath = appDir.toPath().resolve("backend/core.jar");
-
-            System.out.println("Searching core at: " + coreJarPath);
-
-            if (!Files.exists(coreJarPath)) {
-                System.err.println("❌ Backend core JAR not found!");
-                return;
-            }
-
-            String javaBin = System.getProperty("java.home")
-                    + File.separator + "bin" + File.separator + "java";
-
-            ProcessBuilder pb = new ProcessBuilder(
-                    javaBin,
-                    "-jar",
-                    coreJarPath.toAbsolutePath().toString());
-
-            pb.inheritIO();
-            pb.directory(appDir);
-
-            backendProcess = pb.start();
-            System.out.println("🔥 Backend core started successfully!");
-
-        } catch (Exception e) {
-            System.err.println("❌ Failed to start backend core:");
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Starts backend core with a delay after the frontend has initialized.
-     * Currently hard-coded to 5 seconds.
-     */
-    private static void startBackendCoreWithDelay() {
-        Thread t = new Thread(() -> {
-            try {
-                // Wait 5 seconds after frontend is up
-                Thread.sleep(5000);
-                startBackendCore();
-            } catch (InterruptedException ignored) {
-                // ignore
-            }
-        }, "backend-core-starter");
-        t.setDaemon(true);
-        t.start();
-    }
 
     /** Default window width. */
     private static final int DEFAULT_WIDTH = 1200;
@@ -196,6 +122,7 @@ public class App extends JFrame {
         themeManager.setMainFrame(this);
         themeManager.setApp(this);
 
+        // Show login view by default
         showView(LOGIN_VIEW);
 
         // Center the window
@@ -221,21 +148,6 @@ public class App extends JFrame {
         return ipVal.substring(0, ipVal.indexOf(","));
     }
 
-    private static void startBackend() {
-        try {
-            String java = System.getProperty("java.home") + "/bin/java";
-            String jarPath = App.class.getResource("/backend/core.jar").getPath();
-
-            ProcessBuilder builder = new ProcessBuilder(java, "-jar", jarPath);
-            builder.redirectErrorStream(true);
-            backendProcess = builder.start();
-
-            System.out.println("Backend started: " + jarPath);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
     /**
      * Initializes all the views and adds them to the card layout.
      */
@@ -252,10 +164,7 @@ public class App extends JFrame {
 
         // Initialize Views with their respective ViewModels
         final LoginPage loginView = new LoginPage(loginViewModel);
-        System.out.println("Starting backend");
-        startBackendCoreWithDelay();
         final MainPage mainView = new MainPage(mainViewModel);
-
         final MeetingPage meetingView = new MeetingPage(meetingViewModel);
 
         // Add views to card layout
@@ -269,10 +178,10 @@ public class App extends JFrame {
         setupLogoutListener();
 
         // Use an array to hold the meeting view reference for use in lambda
-        final MeetingPage[] meetingViewRef = new MeetingPage[] { meetingView };
+        final MeetingPage[] meetingViewRef = new MeetingPage[] {meetingView};
 
         // Use an array to hold the current active meeting view model reference
-        final MeetingViewModel[] activeMeetingViewModelRef = new MeetingViewModel[] { meetingViewModel };
+        final MeetingViewModel[] activeMeetingViewModelRef = new MeetingViewModel[] {meetingViewModel};
 
         setupParticipantUpdateListener(activeMeetingViewModelRef);
         setupStartMeetingListener(meetingViewRef, activeMeetingViewModelRef);
@@ -294,7 +203,7 @@ public class App extends JFrame {
             if (user != null) {
                 this.currentUser = user;
                 mainViewModel.setCurrentUser(currentUser);
-
+                
                 // Load theme from cloud after user is logged in
                 ThemeManager.getInstance().loadThemeFromCloud();
                 System.out.println("App: Theme loaded from cloud");
@@ -323,47 +232,18 @@ public class App extends JFrame {
      * @param activeMeetingViewModelRef reference to the active meeting view model
      */
     private void setupParticipantUpdateListener(final MeetingViewModel[] activeMeetingViewModelRef) {
-
         rpc.subscribe("core/updateParticipants", data -> {
-            System.out.println("updating participants");
             try {
-                final Map<ClientNode, UserProfile> participantsMap = DataSerializer.deserialize(
-                        data,
-                        new TypeReference<Map<ClientNode, UserProfile>>() {
-                        });
+                final Map<ClientNode, UserProfile> participantsMap = DataSerializer.deserialize(data,
+                        new TypeReference<Map<ClientNode, UserProfile>>() { });
                 System.out.println("App: participantsMap: " + participantsMap);
-
-                final MeetingViewModel meetingViewModel = activeMeetingViewModelRef[0];
-                if (meetingViewModel == null) {
-                    return new byte[0];
-                }
-
-                meetingViewModel.getIpToMail().clear();
-                final List<UserProfile> snapshot = new ArrayList<>();
-
-                // Re-populate from authoritative map
                 participantsMap.forEach((clientNode, userProfile) -> {
-                    if (userProfile == null) {
-                        return;
-                    }
-
                     System.out.println("App: clientNode: " + clientNode + " userProfile: " + userProfile);
-
-                    final String email = userProfile.getEmail();
-                    final String hostName = clientNode != null ? clientNode.hostName() : null;
-
-                    if (email != null && hostName != null) {
-                        // map email -> host/ip (use hostName() as you had)
-                        meetingViewModel.getIpToMail().put(email, hostName);
-                    }
-
-                    snapshot.add(userProfile);
+                    activeMeetingViewModelRef[0].getIpToMail().put(userProfile.getEmail(), clientNode.hostName());
+                    // Use the currently active meeting view model
+                    activeMeetingViewModelRef[0].addParticipant(userProfile);
+                    System.out.println("App: participants: " + activeMeetingViewModelRef[0].getParticipants().get());
                 });
-
-                // apply snapshot once so UI sees a consistent list
-                meetingViewModel.applyParticipantSnapshot(snapshot);
-
-                System.out.println("App: participants after update: " + meetingViewModel.getParticipants().get());
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
@@ -374,11 +254,11 @@ public class App extends JFrame {
     /**
      * Sets up the start meeting listener.
      *
-     * @param meetingViewRef            reference to the meeting view
+     * @param meetingViewRef reference to the meeting view
      * @param activeMeetingViewModelRef reference to the active meeting view model
      */
     private void setupStartMeetingListener(final MeetingPage[] meetingViewRef,
-            final MeetingViewModel[] activeMeetingViewModelRef) {
+                                           final MeetingViewModel[] activeMeetingViewModelRef) {
         mainViewModel.getStartMeetingRequested().addListener(PropertyListeners.onBooleanChanged(startMeeting -> {
             if (startMeeting && currentUser != null) {
                 // First, get the meeting ID from MainViewModel by creating the meeting
@@ -391,6 +271,8 @@ public class App extends JFrame {
                     return;
                 }
 
+                // Ensure the local profile reflects instructor role
+                currentUser.setRole(ParticipantRole.INSTRUCTOR);
                 // Create a new meeting view model for this meeting with Instructor role
                 final MeetingViewModel newMeetingViewModel = new MeetingViewModel(currentUser, "Instructor", rpc);
 
@@ -435,11 +317,11 @@ public class App extends JFrame {
     /**
      * Sets up the join meeting listener.
      *
-     * @param meetingViewRef            reference to the meeting view
+     * @param meetingViewRef reference to the meeting view
      * @param activeMeetingViewModelRef reference to the active meeting view model
      */
     private void setupJoinMeetingListener(final MeetingPage[] meetingViewRef,
-            final MeetingViewModel[] activeMeetingViewModelRef) {
+                                          final MeetingViewModel[] activeMeetingViewModelRef) {
         mainViewModel.getJoinMeetingRequested().addListener(PropertyListeners.onBooleanChanged(joinMeeting -> {
             if (joinMeeting && currentUser != null) {
                 // Get the meeting code from MainViewModel
@@ -455,6 +337,7 @@ public class App extends JFrame {
                 mainViewModel.joinMeeting(meetingCode);
 
                 // Create a new meeting view model for joining meeting with Student role
+                currentUser.setRole(ParticipantRole.STUDENT);
                 final MeetingViewModel newMeetingViewModel = new MeetingViewModel(currentUser, "Student", rpc);
 
                 // Create a new MeetingPage with the new view model
@@ -576,7 +459,6 @@ public class App extends JFrame {
                 System.err.println("Warning: Could not initialize JavaFX early: " + e.getMessage());
             }
         });
-
         javaFXInitThread.setDaemon(true);
         javaFXInitThread.start();
 
@@ -598,9 +480,13 @@ public class App extends JFrame {
 
             app.start();
             app.setVisible(true);
-            startBackendCoreWithDelay();
         });
 
+        try {
+            handler.join();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     // Getters
@@ -651,52 +537,8 @@ public class App extends JFrame {
 
         // Clear view history
         viewHistory.clear();
-        clearStoredCredentialCache();
 
         // Navigate to login view - this will trigger reset on LoginPage
         showView(LOGIN_VIEW);
-    }
-
-    /**
-     * Clears any persisted OAuth tokens so the next login starts fresh.
-     */
-    private void clearStoredCredentialCache() {
-        final Path tokensDir = resolveTokenDirectory();
-        if (tokensDir == null || !Files.exists(tokensDir)) {
-            return;
-        }
-        try (java.util.stream.Stream<Path> paths = Files.walk(tokensDir)) {
-            paths.sorted(Comparator.reverseOrder()).forEach(path -> {
-                try {
-                    Files.deleteIfExists(path);
-                } catch (IOException e) {
-                    System.err.println("Failed to delete credential file: " + path + " -> " + e.getMessage());
-                }
-            });
-            System.out.println("Cleared stored credential cache at " + tokensDir.toAbsolutePath());
-        } catch (IOException e) {
-            System.err.println("Error clearing stored credentials: " + e.getMessage());
-        }
-    }
-
-    private Path resolveTokenDirectory() {
-        try {
-            final File currentJar = new File(App.class
-                    .getProtectionDomain()
-                    .getCodeSource()
-                    .getLocation()
-                    .toURI());
-            final File appDir = currentJar.getParentFile();
-            if (appDir != null) {
-                final Path candidate = appDir.toPath().resolve("tokens");
-                if (Files.exists(candidate)) {
-                    return candidate;
-                }
-            }
-        } catch (Exception ignored) {
-            // fall back to working directory
-        }
-        final Path fallback = Paths.get("tokens");
-        return Files.exists(fallback) ? fallback : null;
     }
 }
