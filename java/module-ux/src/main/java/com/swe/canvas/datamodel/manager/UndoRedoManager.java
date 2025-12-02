@@ -9,10 +9,9 @@
 
 package com.swe.canvas.datamodel.manager;
 
+import com.swe.canvas.datamodel.action.Action;
 import java.util.ArrayList;
 import java.util.List;
-
-import com.swe.canvas.datamodel.action.Action;
 
 /**
  * Manages the history of actions for Undo/Redo functionality.

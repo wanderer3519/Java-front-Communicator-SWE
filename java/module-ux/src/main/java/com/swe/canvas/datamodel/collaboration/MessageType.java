@@ -11,10 +11,6 @@ package com.swe.canvas.datamodel.collaboration;
 
 /**
  * Defines the type of action being sent over the network.
- *
- * <p>This enum categorizes the payload within a {@link NetworkMessage},
- * instructing the receiver on how to process the data (e.g., as a
- * modification to the canvas, an undo command, or a full state restoration).</p>
  */
 public enum MessageType {
     /**
@@ -36,6 +32,11 @@ public enum MessageType {
      * A restore (full state reset) request.
      */
     RESTORE,
+
+    /**
+     * A request from a new client asking the host for the current canvas state.
+     */
+    REQUEST_SHAPES,
 
     /**
      * An unknown type, used primarily for testing default/fallback paths.

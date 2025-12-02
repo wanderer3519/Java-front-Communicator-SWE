@@ -13,16 +13,12 @@ package com.swe.canvas.datamodel.serialization;
 /**
  * Custom runtime exception for serialization or deserialization failures.
  *
- * <p>This exception is thrown by {@link ActionSerializer} or
- * {@link ActionDeserializer} when an underlying error occurs (e.g.,
- * IOException, ClassNotFoundException).
- * </p>
+ * <p>This exception is thrown by serializers or deserializers
+ * when an underlying error occurs (e.g., IOException, ClassNotFoundException).</p>
  *
  * <p><b>Thread Safety:</b> This class is thread-safe, like all Exceptions.</p>
  *
  * @author Gajjala Bhavani Shankar
- 
- 
  */
 public class SerializationException extends RuntimeException {
 

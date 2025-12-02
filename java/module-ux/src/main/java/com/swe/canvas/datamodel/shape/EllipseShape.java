@@ -66,7 +66,7 @@ public class EllipseShape extends Shape {
 
         if (boundingBox.size() != REQUIRED_POINTS) {
             throw new IllegalArgumentException(
-                "EllipseShape must be defined by exactly " + REQUIRED_POINTS + " points."
+                    "EllipseShape must be defined by exactly " + REQUIRED_POINTS + " points."
             );
         }
     }

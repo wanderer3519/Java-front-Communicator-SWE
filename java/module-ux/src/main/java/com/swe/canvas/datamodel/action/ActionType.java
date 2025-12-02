@@ -14,8 +14,7 @@ package com.swe.canvas.datamodel.action;
  * Enumerates the types of actions that can be performed on the canvas.
  *
  * <p>Used for serialization and by the {@link ActionFactory} and
- * {@link com.swe.canvas.datamodel.manager.ActionManager}.
- * </p>
+ * {@link com.swe.canvas.datamodel.manager.ActionManager}.</p>
  *
  * @author Gajula Sri Siva Sai Shashank
  */

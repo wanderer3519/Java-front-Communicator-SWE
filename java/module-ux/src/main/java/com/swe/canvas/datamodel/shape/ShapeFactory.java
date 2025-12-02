@@ -46,7 +46,7 @@ public class ShapeFactory {
                              final double lineThickness,
                              final Color shapeColor,
                              final String creatorId) {
-        
+
         // We pass 'creatorId' as both the creator and the initial 'lastUpdatedBy' user.
         switch (type) {
             case FREEHAND:

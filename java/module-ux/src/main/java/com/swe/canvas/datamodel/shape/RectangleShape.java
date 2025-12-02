@@ -64,7 +64,7 @@ public class RectangleShape extends Shape {
 
         if (corners.size() != REQUIRED_POINTS) {
             throw new IllegalArgumentException(
-                "RectangleShape must be defined by exactly " + REQUIRED_POINTS + " points."
+                    "RectangleShape must be defined by exactly " + REQUIRED_POINTS + " points."
             );
         }
     }

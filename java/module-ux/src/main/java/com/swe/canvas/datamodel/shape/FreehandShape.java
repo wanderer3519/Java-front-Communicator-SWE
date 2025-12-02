@@ -18,18 +18,14 @@ import java.util.List;
 /**
  * Concrete shape representing a freehand drawing (pencil tool).
  *
- * <p>
- * Unlike geometric shapes (like Rectangles or Lines) which are defined by
+ * <p>Unlike geometric shapes (like Rectangles or Lines) which are defined by
  * a fixed number of control points, a Freehand shape is defined by an arbitrary
  * sequence of points. The rendering engine connects these points to form a
- * continuous curve or stroke.
- * </p>
+ * continuous curve or stroke.</p>
  *
- * <p>
- * <b>Thread Safety:</b> This class is not thread-safe. Large freehand shapes
+ * <p><b>Thread Safety:</b> This class is not thread-safe. Large freehand shapes
  * (with thousands of points) may have performance implications during copying
- * or rendering, so efficient management by the CanvasState is crucial.
- * </p>
+ * or rendering, so efficient management by the CanvasState is crucial.</p>
  *
  * @author Gajjala Bhavani Shankar
  */
@@ -44,11 +40,9 @@ public class FreehandShape extends Shape {
     /**
      * Constructs a new FreehandShape.
      *
-     * <p>
-     * We permit any number of points for a freehand shape, provided the list
+     * <p>We permit any number of points for a freehand shape, provided the list
      * is not empty. A single point renders as a dot, while multiple points
-     * render as a path.
-     * </p>
+     * render as a path.</p>
      *
      * @param identifier    The unique ID.
      * @param pointList     The ordered list of points making up the stroke.
@@ -59,11 +53,11 @@ public class FreehandShape extends Shape {
      * @throws IllegalArgumentException if the point list is empty.
      */
     public FreehandShape(final ShapeId identifier,
-            final List<Point> pointList,
-            final double lineThickness,
-            final Color shapeColor,
-            final String creatorId,
-            final String updaterId) {
+                         final List<Point> pointList,
+                         final double lineThickness,
+                         final Color shapeColor,
+                         final String creatorId,
+                         final String updaterId) {
         super(identifier, ShapeType.FREEHAND, pointList, lineThickness, shapeColor, creatorId, updaterId);
 
         // A freehand shape must exist physically, so it needs at least one point.
@@ -75,11 +69,9 @@ public class FreehandShape extends Shape {
     /**
      * Creates a deep copy of this freehand shape.
      *
-     * <p>
-     * Because freehand shapes can contain many points, we ensure a full
+     * <p>Because freehand shapes can contain many points, we ensure a full
      * deep copy of the list to preventing concurrent modification issues
-     * between the original shape and its clone (e.g., in Undo stacks).
-     * </p>
+     * between the original shape and its clone (e.g., in Undo stacks).</p>
      *
      * @return A new FreehandShape instance with identical properties.
      */

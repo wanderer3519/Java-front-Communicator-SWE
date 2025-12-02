@@ -15,6 +15,8 @@ import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.swe.controller.serialize.DataSerializer;
+
 /**
  * Tests for NetworkMessage serialization and deserialization.
  */
@@ -22,7 +24,15 @@ class NetworkMessageTest {
 
     @Test
     void testConstructorAndGetters_WithAction() {
-        byte[] data = "test-data".getBytes(StandardCharsets.UTF_8);
+        String testMessage = "test-data";
+        byte[] data = null;
+        try {
+            data = DataSerializer.serialize(testMessage);    
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        
         NetworkMessage msg = new NetworkMessage(MessageType.NORMAL, data);
 
         assertEquals(MessageType.NORMAL, msg.getMessageType());
@@ -64,7 +74,15 @@ class NetworkMessageTest {
 
     @Test
     void testSerialize_NormalMessage() {
-        byte[] data = "abc".getBytes(StandardCharsets.UTF_8);
+        String abc = "abc";
+
+        byte[] data = null;
+        try {
+            data = DataSerializer.serialize(abc);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+         
         NetworkMessage msg = new NetworkMessage(MessageType.NORMAL, data);
         
         String json = msg.serialize();

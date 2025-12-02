@@ -25,15 +25,12 @@ import java.util.stream.Collectors;
  *
  * <p>This class maintains a thread-safe map of {@link ShapeId} to
  * {@link ShapeState}. It serves as the "Single Source of Truth" for the
- * application state on both Host and Client.
- * </p>
+ * application state on both Host and Client.</p>
  *
- * <p>It supports notifying listeners (e.g., the UI) when the state changes.
- * </p>
+ * <p>It supports notifying listeners (e.g., the UI) when the state changes.</p>
  *
  * <p><b>Thread Safety:</b> This class is thread-safe. It uses a
- * {@link ConcurrentMap} for storage.
- * </p>
+ * {@link ConcurrentMap} for storage.</p>
  *
  * @author Darla Manohar
  */

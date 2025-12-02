@@ -124,7 +124,7 @@ public abstract class Shape implements Serializable {
      */
     public void translate(final double dx, final double dy) {
         final List<Point> newPoints = new ArrayList<>(points.size());
-        for (Point p : points) {
+        for (final Point p : points) {
             newPoints.add(new Point(p.getX() + dx, p.getY() + dy));
         }
         this.points = newPoints;
@@ -291,10 +291,14 @@ public abstract class Shape implements Serializable {
      */
     @Override
     public String toString() {
-        // Safe substring handling in case ID is somehow shorter than ID_DISPLAY_LENGTH
-        String idVal = shapeId.getValue();
-        if (idVal.length() > ID_DISPLAY_LENGTH) {
-            idVal = idVal.substring(0, ID_DISPLAY_LENGTH);
+        final String rawId = shapeId.getValue();
+        final String idVal;
+
+        // Ensure we don't crash if ID is shorter than the display length
+        if (rawId.length() > ID_DISPLAY_LENGTH) {
+            idVal = rawId.substring(0, ID_DISPLAY_LENGTH);
+        } else {
+            idVal = rawId;
         }
 
         return String.format("%s[id=%s, points=%d, color=%s]",

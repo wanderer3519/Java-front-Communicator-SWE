@@ -19,11 +19,10 @@ import java.util.Objects;
  * Abstract base class for all operations (Commands) on the canvas.
  *
  * <p>This class implements the <b>Command Pattern</b>. Each action is a
- * self-contained object that describes a single change to the canvas state.
- * </p>
+ * self-contained object that describes a single change to the canvas state.</p>
  *
  * <p>It also incorporates the <b>Memento Pattern</b> by storing
- * {@link ShapeState} snapshots:
+ * {@link ShapeState} snapshots:</p>
  * <ul>
  * <li>`prevState`: The state of the shape *before* the action. Used by the
  * Host for validation and conflict detection.</li>
@@ -31,11 +30,9 @@ import java.util.Objects;
  * gets applied to the {@link com.swe.canvas.datamodel.canvas.CanvasState}
  * upon successful validation.</li>
  * </ul>
- * </p>
  *
  * <p><b>Thread Safety:</b> This class is immutable and therefore thread-safe.
- * It is designed to be passed between threads and serialized over the network.
- * </p>
+ * It is designed to be passed between threads and serialized over the network.</p>
  *
  * <p><b>Design Pattern:</b> Command, Memento</p>
  *

@@ -66,7 +66,7 @@ public class LineShape extends Shape {
 
         if (endpoints.size() != REQUIRED_POINTS) {
             throw new IllegalArgumentException(
-                "LineShape must be defined by exactly " + REQUIRED_POINTS + " points."
+                    "LineShape must be defined by exactly " + REQUIRED_POINTS + " points."
             );
         }
     }

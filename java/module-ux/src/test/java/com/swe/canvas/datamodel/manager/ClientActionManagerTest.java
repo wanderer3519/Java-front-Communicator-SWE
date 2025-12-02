@@ -13,6 +13,7 @@ import com.swe.canvas.datamodel.shape.LineShape;
 import com.swe.canvas.datamodel.shape.Point;
 import com.swe.canvas.datamodel.shape.Shape;
 import com.swe.canvas.datamodel.shape.ShapeId;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -25,6 +26,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+
+import com.swe.controller.serialize.DataSerializer;
 
 class ClientActionManagerTest {
 
@@ -169,7 +172,15 @@ class ClientActionManagerTest {
     void testProcessIncomingMessage_Normal_MyAction() {
         Action action = new ActionFactory().createCreateAction(createLineShape(new ShapeId("s1"), userId), userId);
         String json = NetActionSerializer.serializeAction(action);
-        NetworkMessage msg = new NetworkMessage(MessageType.NORMAL, json.getBytes());
+
+        byte[] data = null;
+        try {
+            data = DataSerializer.serialize(json);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        NetworkMessage msg = new NetworkMessage(MessageType.NORMAL, data);
 
         clientManager.processIncomingMessage(msg);
         assertNotNull(canvasState.getShapeState(new ShapeId("s1")));
@@ -180,7 +191,15 @@ class ClientActionManagerTest {
     void testProcessIncomingMessage_Normal_OtherAction() {
         Action action = new ActionFactory().createCreateAction(createLineShape(new ShapeId("s1"), "OTHER"), "OTHER");
         String json = NetActionSerializer.serializeAction(action);
-        NetworkMessage msg = new NetworkMessage(MessageType.NORMAL, json.getBytes());
+
+        byte[] data = null;
+        try {
+            data = DataSerializer.serialize(json);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        NetworkMessage msg = new NetworkMessage(MessageType.NORMAL, data);
 
         clientManager.processIncomingMessage(msg);
         assertNotNull(canvasState.getShapeState(new ShapeId("s1")));
@@ -189,7 +208,16 @@ class ClientActionManagerTest {
 
     @Test
     void testProcessIncomingMessage_BadAction() {
-        NetworkMessage msg = new NetworkMessage(MessageType.NORMAL, "bad-json".getBytes());
+        String badJson = "bad-json";
+
+        byte[] data = null;
+        try {
+            data = DataSerializer.serialize(badJson);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        NetworkMessage msg = new NetworkMessage(MessageType.NORMAL, data);
         assertDoesNotThrow(() -> clientManager.processIncomingMessage(msg));
     }
 }

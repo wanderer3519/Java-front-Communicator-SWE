@@ -16,13 +16,12 @@ import com.swe.canvas.datamodel.shape.ShapeId;
 /**
  * Concrete action for modifying a shape's properties (points, color, etc.).
  *
- * <p>For this action:
+ * <p>For this action:</p>
  * <ul>
  * <li>`prevState` is the state before modification.</li>
  * <li>`newState` is the state after modification.</li>
  * <li>Both states must have `isDeleted=false`.</li>
  * </ul>
- * </p>
  *
  * <p><b>Thread Safety:</b> This class is immutable and thread-safe.</p>
  *

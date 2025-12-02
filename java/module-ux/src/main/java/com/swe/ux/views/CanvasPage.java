@@ -26,9 +26,7 @@ import com.swe.controller.RPC;
 import com.swe.controller.RPCinterface.AbstractRPC;
 
 /**
- * Canvas Page - Embeds canvas FXML using JFXPanel
- * Matches the sizing and layout behavior of ScreenNVideo component
- * Dynamically resizes to fit within panel bounds without scrollbars
+ * Canvas Page - Embeds canvas FXML using JFXPanel.
  */
 public class CanvasPage extends JPanel {
 
@@ -47,28 +45,24 @@ public class CanvasPage extends JPanel {
         this.actionManager = actionManager;
         this.userId = userId;
         
-        // Match ScreenNVideo layout: BorderLayout with padding
         setLayout(new BorderLayout(10, 10));
         setBorder(new EmptyBorder(10, 10, 10, 10));
         setOpaque(false);
         setMinimumSize(new Dimension(0, 0));
         setPreferredSize(null);
 
-        // Initialize JavaFX early
         try {
             JavaFXSwingBridge.initializeJavaFX();
         } catch (Exception e) {
             System.err.println("Warning: JavaFX initialization issue: " + e.getMessage());
         }
 
-        // Create JFXPanel - no preferred size, let layout manager handle it
         fxPanel = new JFXPanel();
         fxPanel.setOpaque(false);
         fxPanel.setMinimumSize(new Dimension(0, 0));
         fxPanel.setPreferredSize(new Dimension(0, 0));
         add(fxPanel, BorderLayout.CENTER);
 
-        // Add resize listener to match ScreenNVideo behavior
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
@@ -81,7 +75,6 @@ public class CanvasPage extends JPanel {
             }
         });
 
-        // Make sure ancestor size changes (e.g. sidebar drag) also resize the canvas
         addHierarchyBoundsListener(new HierarchyBoundsAdapter() {
             @Override
             public void ancestorResized(HierarchyEvent e) {
@@ -89,7 +82,6 @@ public class CanvasPage extends JPanel {
             }
         });
 
-        // Apply theme
         ThemeManager.getInstance().applyThemeRecursively(this);
 
         if (rpcObj != null) {
@@ -99,14 +91,23 @@ public class CanvasPage extends JPanel {
         }
     }
 
+    /**
+     * Called by MeetingPage whenever the participant list updates.
+     * This delegates to the ActionManager to handle potential syncing logic.
+     * * @param participantId The ID (email) of the participant who is present/joined.
+     */
+    public void onUserJoined(String participantId) {
+        if (actionManager != null) {
+            actionManager.handleUserJoined(participantId);
+        }
+    }
+
     @Override
     public void addNotify() {
         super.addNotify();
-        // Initialize when component is added to hierarchy, but only once
         if (!initialized) {
             initialized = true;
             Platform.setImplicitExit(false);
-            // Initialize immediately - JFXPanel will handle sizing
             Platform.runLater(() -> {
                 try {
                     initFX();
@@ -121,7 +122,6 @@ public class CanvasPage extends JPanel {
 
     private void initFX() {
         try {
-            // Load FXML - try multiple classloaders
             URL fxmlUrl = ClassLoader.getSystemClassLoader().getResource("fxml/canvas-view.fxml");
             if (fxmlUrl == null) {
                 fxmlUrl = CanvasPage.class.getClassLoader().getResource("fxml/canvas-view.fxml");
@@ -138,18 +138,13 @@ public class CanvasPage extends JPanel {
             root = loader.load();
             CanvasController controller = loader.getController();
 
-            // Initialize controller
             if (controller != null) {
-                controller.initModel(actionManager);
+                controller.initModel(actionManager, this.rpc);
             }
 
-            // Calculate initial size based on available space
             Dimension availableSize = getAvailableSize();
-            
-            // Create scene with calculated size - matching ScreenNVideo's dynamic sizing
             scene = new Scene(root, availableSize.width, availableSize.height);
 
-            // Load CSS
             URL cssUrl = ClassLoader.getSystemClassLoader().getResource("css/canvas-view.css");
             if (cssUrl == null) {
                 cssUrl = CanvasPage.class.getClassLoader().getResource("css/canvas-view.css");
@@ -161,10 +156,8 @@ public class CanvasPage extends JPanel {
                 scene.getStylesheets().add(cssUrl.toExternalForm());
             }
 
-            // Set the scene on the JFXPanel
             fxPanel.setScene(scene);
             
-            // Ensure initial sizing is correct after scene is set
             SwingUtilities.invokeLater(() -> {
                 updateCanvasSize();
             });
@@ -175,40 +168,28 @@ public class CanvasPage extends JPanel {
         }
     }
 
-    /**
-     * Calculate available size for the canvas, matching ScreenNVideo's approach.
-     * Accounts for borders, padding, and ensures it fits within panel bounds.
-     */
     private Dimension getAvailableSize() {
         Dimension size = getSize();
         if (size.width == 0 || size.height == 0) {
-            // Fallback to reasonable defaults if not yet laid out
             Container parent = getParent();
             if (parent != null) {
                 size = parent.getSize();
             }
             if (size.width == 0 || size.height == 0) {
-                size = new Dimension(800, 600); // Default fallback
+                size = new Dimension(800, 600); 
             }
         }
 
-        // Account for border and padding (10px on each side from EmptyBorder)
         Insets insets = getInsets();
         int availableWidth = size.width - (insets.left + insets.right);
         int availableHeight = size.height - (insets.top + insets.bottom);
 
-        // Allow shrinking fully when sidebar/chat panels are shown
         availableWidth = Math.max(1, availableWidth);
         availableHeight = Math.max(1, availableHeight);
 
         return new Dimension(availableWidth, availableHeight);
     }
 
-    /**
-     * Update canvas size when panel is resized, matching ScreenNVideo's resize behavior.
-     * JFXPanel automatically scales the Scene content to fit its bounds.
-     * We just need to ensure the panel revalidates and repaints.
-     */
     private void updateCanvasSize() {
         if (!initialized || !isDisplayable()) {
             return;
@@ -218,8 +199,6 @@ public class CanvasPage extends JPanel {
         final int targetWidth = Math.max(1, availableSize.width);
         final int targetHeight = Math.max(1, availableSize.height);
 
-        // JFXPanel automatically scales the Scene to fit its container, but we still
-        // push preferred size hints so the surrounding layout matches other stages.
         SwingUtilities.invokeLater(() -> {
             if (fxPanel != null) {
                 fxPanel.setPreferredSize(new Dimension(targetWidth, targetHeight));

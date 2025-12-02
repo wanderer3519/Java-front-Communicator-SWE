@@ -19,7 +19,15 @@ import com.swe.canvas.datamodel.action.ResurrectShapeAction;
 import com.swe.canvas.datamodel.canvas.ShapeState;
 import com.swe.canvas.datamodel.shape.ShapeId;
 
-public class NetActionSerializer {
+/**
+ * Serializes and deserializes Action objects for network transmission.
+ */
+public final class NetActionSerializer {
+
+    private NetActionSerializer() {
+        // Utility class
+    }
+
     // =========================================================================
     // Action Serialization/Deserialization
     // =========================================================================
@@ -28,7 +36,7 @@ public class NetActionSerializer {
      * Manually serializes an Action object, including nested ShapeState objects.
      * Fields included: actionId, actionType, prevState, newState (and others from
      * the base class).
-     * 
+     *
      * @param action The action to serialize.
      * @return A JSON string.
      */
@@ -47,36 +55,41 @@ public class NetActionSerializer {
                 .append(JsonUtils.jsonEscape(action.getActionType().toString())).append(",");
 
         // 2. PrevState (nested ShapeState JSON)
-        final String prevStateJson = ShapeSerializer.serializeShape(action.getPrevState());
-        sb.append(JsonUtils.jsonEscape("Prev")).append(":");
-        if (prevStateJson != null) {
-            sb.append(prevStateJson); // Append raw JSON object
-        } else {
-            sb.append("null");
-        }
+        appendState(sb, "Prev", action.getPrevState());
         sb.append(",");
 
         // 3. NewState (nested ShapeState JSON)
-        final String newStateJson = ShapeSerializer.serializeShape(action.getNewState());
-        sb.append(JsonUtils.jsonEscape("Next")).append(":");
-        if (newStateJson != null) {
-            sb.append(newStateJson); // Append raw JSON object
-        } else {
-            sb.append("null");
-        }
-
-        // NOTE: The 'next' field is omitted as it is not present in the base Action
-        // class.
+        appendState(sb, "Next", action.getNewState());
 
         sb.append("}");
         return sb.toString();
     }
 
     /**
+     * Helper to append a state object to the string builder.
+     *
+     * @param sb    The StringBuilder to append to.
+     * @param key   The JSON key.
+     * @param state The ShapeState object.
+     */
+    private static void appendState(final StringBuilder sb, final String key,
+                                    final ShapeState state) {
+        final String json = ShapeSerializer.serializeShape(state);
+        sb.append(JsonUtils.jsonEscape(key)).append(":");
+        if (json != null) {
+            sb.append(json);
+        } else {
+            sb.append("null");
+        }
+    }
+
+    /**
      * Manually deserializes a JSON string back into a concrete Action object.
      *
-     * IMPORTANT: This method must use the Action subclass constructors
-     * (e.g., CreateShapeAction, ModifyShapeAction) for correct object creation.
+     * <p>IMPORTANT: This method uses Action subclass constructors for correct object creation.</p>
+     *
+     * @param json The JSON string to deserialize.
+     * @return The concrete Action object.
      */
     public static Action deserializeAction(final String json) {
         if (json == null || json.isEmpty() || "null".equals(json)) {
@@ -88,43 +101,58 @@ public class NetActionSerializer {
 
             // 1. Extract Core Metadata Fields
             final String actionId = JsonUtils.extractString(content, "ActionId");
-            final String actionTypeString = JsonUtils.extractString(content, "ActionType");
+            final String typeStr = JsonUtils.extractString(content, "ActionType");
 
-            final ActionType actionType = ActionType.valueOf(actionTypeString);
+            validateMetadata(actionId, typeStr);
 
-            // 2. Extract nested JSON strings for PrevState and NewState
-            final String prevStateJson = JsonUtils.extractNestedJson(content, "Prev");
-            final String newStateJson = JsonUtils.extractNestedJson(content, "Next");
+            final ActionType actionType = ActionType.valueOf(typeStr);
 
-            // 3. Deserialize nested ShapeState objects
-            final ShapeState prevState = ShapeSerializer.deserializeShape(prevStateJson);
-            final ShapeState newState = ShapeSerializer.deserializeShape(newStateJson);
+            // 2. Extract nested ShapeState objects
+            final ShapeState prevState = extractState(content, "Prev");
+            final ShapeState newState = extractState(content, "Next");
 
-            if (actionId == null || actionType == null || newState == null) {
-                throw new SerializationException("Missing crucial action field during deserialization.");
+            if (newState == null) {
+                throw new SerializationException("Missing crucial action field: Next state.");
             }
 
-            final String userId = newState.getShape().getLastUpdatedBy();
-            final long timestamp = newState.getLastModified();
-            final ShapeId targetId = newState.getShape().getShapeId();
+            // 3. Factory logic
+            return buildAction(actionType, actionId, prevState, newState);
 
-            // 4. Factory logic to create the correct concrete Action subclass
-            switch (actionType) {
-                case CREATE:
-                    // CreateAction ignores prevState (should be null)
-                    return new CreateShapeAction(actionId, userId, timestamp, targetId, newState);
-                case MODIFY:
-                    return new ModifyShapeAction(actionId, userId, timestamp, targetId, prevState, newState);
-                case DELETE:
-                    return new DeleteShapeAction(actionId, userId, timestamp, targetId, prevState, newState);
-                case RESURRECT:
-                    return new ResurrectShapeAction(actionId, userId, timestamp, targetId, prevState, newState);
-                default:
-                    throw new SerializationException("Unknown action type: " + actionType);
-            }
+        } catch (final Exception e) {
+            throw new SerializationException("Failed to manually deserialize Action: "
+                    + e.getMessage(), e);
+        }
+    }
 
-        } catch (SerializationException e) {
-            throw new SerializationException("Failed to manually deserialize Action: " + e.getMessage(), e);
+    private static void validateMetadata(final String id, final String type) {
+        if (id == null || type == null) {
+            throw new SerializationException("Missing ActionId or ActionType during deserialization.");
+        }
+    }
+
+    private static ShapeState extractState(final String content, final String key) {
+        final String nestedJson = JsonUtils.extractNestedJson(content, key);
+        return ShapeSerializer.deserializeShape(nestedJson);
+    }
+
+    private static Action buildAction(final ActionType type, final String id,
+                                      final ShapeState prev, final ShapeState next) {
+        final String userId = next.getShape().getLastUpdatedBy();
+        final long timestamp = next.getLastModified();
+        final ShapeId targetId = next.getShape().getShapeId();
+
+        switch (type) {
+            case CREATE:
+                // CreateAction ignores prevState (should be null)
+                return new CreateShapeAction(id, userId, timestamp, targetId, next);
+            case MODIFY:
+                return new ModifyShapeAction(id, userId, timestamp, targetId, prev, next);
+            case DELETE:
+                return new DeleteShapeAction(id, userId, timestamp, targetId, prev, next);
+            case RESURRECT:
+                return new ResurrectShapeAction(id, userId, timestamp, targetId, prev, next);
+            default:
+                throw new SerializationException("Unknown action type: " + type);
         }
     }
 }

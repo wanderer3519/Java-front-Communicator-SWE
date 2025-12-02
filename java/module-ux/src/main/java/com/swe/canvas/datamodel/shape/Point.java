@@ -16,17 +16,12 @@ import java.util.Objects;
 /**
  * Represents an immutable 2D coordinate (x, y).
  *
- * <p>
- * This class serves as a fundamental building block for the geometry of shapes
+ * <p>This class serves as a fundamental building block for the geometry of shapes
  * within the canvas. By keeping it immutable, we ensure that passing points
- * around
- * (like in Undo/Redo stacks) is perfectly safe and free of side effects.
- * </p>
+ * around (like in Undo/Redo stacks) is perfectly safe and free of side effects.</p>
  *
- * <p>
- * <b>Thread Safety:</b> This class is completely immutable. Once a point is
- * defined, its coordinates cannot change, making it inherently thread-safe.
- * </p>
+ * <p><b>Thread Safety:</b> This class is completely immutable. Once a point is
+ * defined, its coordinates cannot change, making it inherently thread-safe.</p>
  *
  * @author Gajjala Bhavani Shankar
  */
@@ -50,10 +45,8 @@ public final class Point implements Serializable {
     /**
      * Constructs a new Point with specific coordinates.
      *
-     * <p>
-     * Note: We use distinct parameter names here to avoid "HiddenField"
-     * violations where parameters shadow the class fields.
-     * </p>
+     * <p>Note: We use distinct parameter names here to avoid "HiddenField"
+     * violations where parameters shadow the class fields.</p>
      *
      * @param xCoordinate The horizontal position.
      * @param yCoordinate The vertical position.
@@ -94,11 +87,9 @@ public final class Point implements Serializable {
     /**
      * Compares this Point to another object for equality.
      *
-     * <p>
-     * We use {@code Double.compare} instead of simple {@code ==} to correctly
+     * <p>We use {@code Double.compare} instead of simple {@code ==} to correctly
      * handle edge cases like NaN (Not a Number) and distinct types of zeros,
-     * ensuring robust geometric comparisons.
-     * </p>
+     * ensuring robust geometric comparisons.</p>
      *
      * @param obj The object to compare with.
      * @return True if the other object is a Point with identical coordinates.

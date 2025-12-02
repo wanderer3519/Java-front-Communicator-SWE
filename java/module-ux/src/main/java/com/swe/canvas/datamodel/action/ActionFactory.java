@@ -21,12 +21,10 @@ import java.util.UUID;
  *
  * <p>This class is intended to be used by the UI layer. It correctly
  * captures the current {@link ShapeState} (the `prevState` Memento)
- * from the {@link CanvasState} at the moment of action creation.
- * </p>
+ * from the {@link CanvasState} at the moment of action creation.</p>
  *
  * <p>It also handles the creation of inverse actions for the undo/redo
- * mechanism.
- * </p>
+ * mechanism.</p>
  *
  * <p><b>Thread Safety:</b> This class is stateless and therefore thread-safe.</p>
  *

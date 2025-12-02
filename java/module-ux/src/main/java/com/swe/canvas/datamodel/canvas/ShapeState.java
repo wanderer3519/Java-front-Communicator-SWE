@@ -20,18 +20,15 @@ import java.util.Objects;
  *
  * <p>This class acts as the <b>Memento</b> in the Memento pattern. It stores a
  * snapshot of a {@link Shape} object, its deletion status (for soft deletes),
- * and a modification timestamp.
- * </p>
+ * and a modification timestamp.</p>
  *
  * <p>Instances of this class are stored as the `prevState` and `newState` in
  * {@link com.swe.canvas.datamodel.action.Action} objects, allowing for
- * validation, conflict detection, and undo/redo operations.
- * </p>
+ * validation, conflict detection, and undo/redo operations.</p>
  *
  * <p><b>Thread Safety:</b> This class is immutable (or effectively immutable
  * as it's intended to be used as a snapshot) and therefore thread-safe.
- * The internal {@link Shape} is a deep copy.
- * </p>
+ * The internal {@link Shape} is a deep copy.</p>
  *
  * <p><b>Design Pattern:</b> Memento, State</p>
  *

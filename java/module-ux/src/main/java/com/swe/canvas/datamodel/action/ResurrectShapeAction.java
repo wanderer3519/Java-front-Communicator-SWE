@@ -16,12 +16,11 @@ import com.swe.canvas.datamodel.shape.ShapeId;
 /**
  * Concrete action for un-deleting a shape (undoing a delete).
  *
- * <p>For this action:
+ * <p>For this action:</p>
  * <ul>
  * <li>`prevState` is the deleted state (`isDeleted=true`).</li>
  * <li>`newState` is the restored state (`isDeleted=false`).</li>
  * </ul>
- * </p>
  *
  * <p><b>Thread Safety:</b> This class is immutable and thread-safe.</p>
  *

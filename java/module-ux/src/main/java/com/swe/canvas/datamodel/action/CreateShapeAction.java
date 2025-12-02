@@ -16,12 +16,11 @@ import com.swe.canvas.datamodel.shape.ShapeId;
 /**
  * Concrete action for creating a new shape.
  *
- * <p>For this action:
+ * <p>For this action:</p>
  * <ul>
  * <li>`prevState` is always {@code null}.</li>
  * <li>`newState` contains the newly created shape and has `isDeleted=false`.</li>
  * </ul>
- * </p>
  *
  * <p><b>Thread Safety:</b> This class is immutable and thread-safe.</p>
  *

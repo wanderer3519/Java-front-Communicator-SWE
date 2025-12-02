@@ -9,18 +9,15 @@
 
 package com.swe.canvas.datamodel.collaboration;
 
-import java.util.Base64;
-
 import com.swe.canvas.datamodel.serialization.JsonUtils;
+import java.util.Base64;
 
 /**
  * A wrapper for data sent over the network.
  *
- * <p>
- * This class encapsulates the type of message (e.g., NORMAL, UNDO),
+ * <p>This class encapsulates the type of message (e.g., NORMAL, UNDO),
  * the serialized binary data of an action, and an optional string payload
- * (used primarily for RESTORE operations).
- * </p>
+ * (used primarily for RESTORE operations).</p>
  */
 public class NetworkMessage {
 
@@ -99,19 +96,19 @@ public class NetworkMessage {
         final StringBuilder sb = new StringBuilder();
         sb.append("{");
         sb.append(JsonUtils.jsonEscape("type")).append(":")
-                .append(JsonUtils.jsonEscape(messageType.toString()));
+            .append(JsonUtils.jsonEscape(messageType.toString()));
 
         // Encode byte array as Base64 string if present
         if (serializedAction != null) {
             final String actionBase64 = Base64.getEncoder().encodeToString(serializedAction);
             sb.append(",").append(JsonUtils.jsonEscape("action")).append(":")
-                    .append(JsonUtils.jsonEscape(actionBase64));
+                .append(JsonUtils.jsonEscape(actionBase64));
         }
 
         // Append Payload string if present
         if (payload != null) {
             sb.append(",").append(JsonUtils.jsonEscape("payload")).append(":")
-                    .append(JsonUtils.jsonEscape(payload));
+                .append(JsonUtils.jsonEscape(payload));
         }
 
         sb.append("}");
@@ -139,9 +136,11 @@ public class NetworkMessage {
 
             // 2. Extract Action (Base64)
             final String actionBase64 = JsonUtils.extractString(json, "action");
-            byte[] actionBytes = null;
+            final byte[] actionBytes;
             if (actionBase64 != null) {
                 actionBytes = Base64.getDecoder().decode(actionBase64);
+            } else {
+                actionBytes = null;
             }
 
             // 3. Extract Payload
@@ -149,7 +148,7 @@ public class NetworkMessage {
 
             return new NetworkMessage(type, actionBytes, payloadStr);
 
-        } catch (Exception e) {
+        } catch (final Exception e) {
             System.err.println("NetworkMessage deserialization failed: " + e.getMessage());
             return null;
         }

@@ -16,12 +16,11 @@ import com.swe.canvas.datamodel.shape.ShapeId;
 /**
  * Concrete action for soft-deleting a shape.
  *
- * <p>For this action:
+ * <p>For this action:</p>
  * <ul>
  * <li>`prevState` is the state before deletion (`isDeleted=false`).</li>
  * <li>`newState` is the state after deletion (`isDeleted=true`).</li>
  * </ul>
- * </p>
  *
  * <p><b>Thread Safety:</b> This class is immutable and thread-safe.</p>
  *

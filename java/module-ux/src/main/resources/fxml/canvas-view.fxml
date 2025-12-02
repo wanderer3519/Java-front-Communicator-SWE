@@ -15,8 +15,12 @@
 <?import javafx.scene.effect.DropShadow?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.shape.SVGPath?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+
 
 <BorderPane prefHeight="600.0" prefWidth="900.0" minHeight="0.0" minWidth="0.0"
             maxHeight="Infinity" maxWidth="Infinity"
@@ -145,11 +149,21 @@
                         </graphic>
                     </Button>
 
+                    <Button fx:id="describeBtn" styleClass="toolbar-icon-button" contentDisplay="GRAPHIC_ONLY" onAction="#onDescribe">
+                        <graphic>
+                            <StackPane style="-fx-pref-width: 18; -fx-pref-height: 18;">
+                                <SVGPath styleClass="svg-icon" content="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z" />
+                            </StackPane>
+                        </graphic>
+                        
+                    </Button>
+
                 </HBox>
             </HBox>
         </ToolBar>
     </top>
 
+    
     <center>
         <StackPane fx:id="canvasContainer"
                    style="-fx-background-color: #E0E0E0; -fx-padding: 10;"
@@ -167,7 +181,8 @@
                 <effect>
                     <DropShadow color="#0000004D" radius="10" offsetX="0" offsetY="4" />
                 </effect>
-                <Canvas fx:id="canvas" width="1600" height="900"
+                
+                <Canvas fx:id="canvas"
                         StackPane.alignment="TOP_LEFT"
                         onMousePressed="#onCanvasMousePressed"
                         onMouseDragged="#onCanvasMouseDragged"
@@ -175,4 +190,21 @@
             </StackPane>
         </StackPane>
     </center>
+
+
+    <right>
+        <VBox fx:id="aiSidebar" spacing="10" 
+              style="-fx-background-color: #F8F9FA; -fx-border-color: #DDDDDD; -fx-border-width: 0 0 0 1; -fx-padding: 15;"
+              prefWidth="300" visible="false" managed="false">
+            
+            <Label text="AI Description" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #333;" />
+            
+            <TextArea fx:id="aiDescriptionArea" wrapText="true" editable="false" VBox.vgrow="ALWAYS" 
+                      style="-fx-font-family: 'Segoe UI', sans-serif; -fx-font-size: 14px;"/>
+            
+            <Button text="Close" onAction="#onCloseAiSidebar" maxWidth="Infinity" 
+                    style="-fx-background-color: #E0E0E0; -fx-text-fill: #333; -fx-cursor: hand;"/>
+        </VBox>
+    </right>
+
 </BorderPane>
