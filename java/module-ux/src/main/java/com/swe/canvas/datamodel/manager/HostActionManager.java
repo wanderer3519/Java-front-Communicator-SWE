@@ -18,6 +18,7 @@ import com.swe.canvas.datamodel.collaboration.MessageType;
 import com.swe.canvas.datamodel.collaboration.NetworkMessage;
 import com.swe.canvas.datamodel.collaboration.NetworkService;
 import com.swe.canvas.datamodel.serialization.NetActionSerializer;
+import com.swe.canvas.datamodel.serialization.ShapeRequestSerializer;
 import com.swe.canvas.datamodel.serialization.ShapeSerializer;
 import com.swe.canvas.datamodel.shape.Shape;
 import com.swe.canvas.datamodel.shape.ShapeId;
@@ -257,7 +258,7 @@ public class HostActionManager implements ActionManager {
     public byte[] handleUpdate(final byte[] data) {
         String dataString;
         try {
-            dataString = DataSerializer.deserialize(data, String.class);
+            dataString = ShapeRequestSerializer.deserializeFromBytes(data, String.class);
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             System.err.println("[HostActionManager] Failed to deserialize data: " + e.getMessage());
             return data;
@@ -288,25 +289,9 @@ public class HostActionManager implements ActionManager {
     private void handleRequestShapes(final NetworkMessage message) {
         try {
             if (message.getPayload() != null && !message.getPayload().isEmpty()) {
-                // message.getPayload() may be an escaped JSON string or plain JSON.
-                // Try to deserialize as String first to un-escape, then as ClientNode.
-                String payloadJson = message.getPayload();
-
-                // If payload looks like a JSON string literal (starts with quotes), unescape it
-                if (payloadJson.startsWith("\"") && payloadJson.endsWith("\"")) {
-                    try {
-                        payloadJson = DataSerializer.deserialize(payloadJson.getBytes(StandardCharsets.UTF_8),
-                                String.class);
-                    } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-                        // If unescape fails, use it as-is
-                        System.err.println(
-                                "[HostActionManager] Could not unescape payload, using as-is: " + e.getMessage());
-                    }
-                }
-
-                final byte[] payloadBytes = payloadJson.getBytes(StandardCharsets.UTF_8);
-                final ClientNode replyTo = DataSerializer
-                        .deserialize(payloadBytes, ClientNode.class);
+                // Use custom serializer to handle escaped JSON and un-escape as needed
+                String payloadJson = ShapeRequestSerializer.unescapeJsonString(message.getPayload());
+                final ClientNode replyTo = ShapeRequestSerializer.deserializeFromString(payloadJson, ClientNode.class);
 
                 if (replyTo != null) {
                     System.out.println("[HostActionManager] Request from " + replyTo.hostName());

@@ -17,6 +17,7 @@ import com.swe.canvas.datamodel.collaboration.MessageType;
 import com.swe.canvas.datamodel.collaboration.NetworkMessage;
 import com.swe.canvas.datamodel.collaboration.NetworkService;
 import com.swe.canvas.datamodel.serialization.NetActionSerializer;
+import com.swe.canvas.datamodel.serialization.ShapeRequestSerializer;
 import com.swe.canvas.datamodel.serialization.ShapeSerializer;
 import com.swe.canvas.datamodel.shape.Shape;
 import com.swe.canvas.datamodel.shape.ShapeId;
@@ -119,17 +120,9 @@ public class ClientActionManager implements ActionManager {
                     return;
                 }
 
-                // 3. Prepare Payload (Serialize ClientNode to JSON string)
-                final byte[] payloadBytes = DataSerializer.serialize(myClientNode);
-                String payloadJson;
-                try {
-                    payloadJson = DataSerializer.deserialize(payloadBytes, String.class);
-                } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-                    // PayloadBytes may contain a JSON object (e.g. {"hostName":"...","port":...}).
-                    // In that case, deserializing to String via Jackson fails because it's not a
-                    // JSON string literal. Fall back to raw UTF-8 decoding to get the JSON text.
-                    payloadJson = new String(payloadBytes, StandardCharsets.UTF_8);
-                }
+                // 3. Prepare Payload (Serialize ClientNode to JSON string using custom
+                // serializer)
+                final String payloadJson = ShapeRequestSerializer.serializeToString(myClientNode);
 
                 // 4. Create Network Message
                 final NetworkMessage requestMsg = new NetworkMessage(MessageType.REQUEST_SHAPES, null, payloadJson);
@@ -252,7 +245,7 @@ public class ClientActionManager implements ActionManager {
     public byte[] handleUpdate(final byte[] data) {
         String dataString;
         try {
-            dataString = DataSerializer.deserialize(data, String.class);
+            dataString = ShapeRequestSerializer.deserializeFromBytes(data, String.class);
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             System.err.println("[ClientActionManager] Failed to deserialize data: " + e.getMessage());
             return data;
