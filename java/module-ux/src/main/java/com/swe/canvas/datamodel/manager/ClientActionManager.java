@@ -125,8 +125,10 @@ public class ClientActionManager implements ActionManager {
                 try {
                     payloadJson = DataSerializer.deserialize(payloadBytes, String.class);
                 } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-                    System.err.println("[ClientActionManager] Failed to deserialize payload: " + e.getMessage());
-                    return;
+                    // PayloadBytes may contain a JSON object (e.g. {"hostName":"...","port":...}).
+                    // In that case, deserializing to String via Jackson fails because it's not a
+                    // JSON string literal. Fall back to raw UTF-8 decoding to get the JSON text.
+                    payloadJson = new String(payloadBytes, StandardCharsets.UTF_8);
                 }
 
                 // 4. Create Network Message
