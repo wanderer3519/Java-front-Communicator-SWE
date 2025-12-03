@@ -63,8 +63,8 @@ public class ClientActionManager implements ActionManager {
      * @param netService The network service instance.
      */
     public ClientActionManager(final String clientId,
-                               final CanvasState state,
-                               final NetworkService netService) {
+            final CanvasState state,
+            final NetworkService netService) {
         this(clientId, state, netService, null);
     }
 
@@ -77,9 +77,9 @@ public class ClientActionManager implements ActionManager {
      * @param rpcParam   The RPC instance to use.
      */
     public ClientActionManager(final String clientId,
-                               final CanvasState state,
-                               final NetworkService netService,
-                               final AbstractRPC rpcParam) {
+            final CanvasState state,
+            final NetworkService netService,
+            final AbstractRPC rpcParam) {
         this.userId = clientId;
         this.canvasState = state;
         this.networkService = netService;
@@ -121,7 +121,13 @@ public class ClientActionManager implements ActionManager {
 
                 // 3. Prepare Payload (Serialize ClientNode to JSON string)
                 final byte[] payloadBytes = DataSerializer.serialize(myClientNode);
-                final String payloadJson = new String(payloadBytes, StandardCharsets.UTF_8);
+                String payloadJson;
+                try {
+                    payloadJson = DataSerializer.deserialize(payloadBytes, String.class);
+                } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                    System.err.println("[ClientActionManager] Failed to deserialize payload: " + e.getMessage());
+                    return;
+                }
 
                 // 4. Create Network Message
                 final NetworkMessage requestMsg = new NetworkMessage(MessageType.REQUEST_SHAPES, null, payloadJson);
@@ -162,8 +168,12 @@ public class ClientActionManager implements ActionManager {
     private void sendActionToHost(final Action action, final MessageType type) {
         try {
             final String serializedAction = NetActionSerializer.serializeAction(action);
-            final NetworkMessage message = new NetworkMessage(type, serializedAction.getBytes());
-            networkService.sendMessageToHost(message);
+            try {
+                final NetworkMessage message = new NetworkMessage(type, DataSerializer.serialize(serializedAction));
+                networkService.sendMessageToHost(message);
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                System.err.println("Client failed to serialize action: " + e.getMessage());
+            }
         } catch (final Exception e) {
             System.err.println("Client failed to send message: " + e.getMessage());
         }
@@ -238,7 +248,13 @@ public class ClientActionManager implements ActionManager {
 
     @Override
     public byte[] handleUpdate(final byte[] data) {
-        final String dataString = new String(data, StandardCharsets.UTF_8);
+        String dataString;
+        try {
+            dataString = DataSerializer.deserialize(data, String.class);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            System.err.println("[ClientActionManager] Failed to deserialize data: " + e.getMessage());
+            return data;
+        }
         final NetworkMessage msg = NetworkMessage.deserialize(dataString);
         processIncomingMessage(msg);
         return data;
@@ -279,7 +295,13 @@ public class ClientActionManager implements ActionManager {
 
     private void handleActionMessage(final NetworkMessage message) {
         try {
-            final String json = new String(message.getSerializedAction(), StandardCharsets.UTF_8);
+            String json;
+            try {
+                json = DataSerializer.deserialize(message.getSerializedAction(), String.class);
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                System.err.println("[ClientActionManager] Failed to deserialize action: " + e.getMessage());
+                return;
+            }
             final Action action = NetActionSerializer.deserializeAction(json);
 
             if (action == null) {

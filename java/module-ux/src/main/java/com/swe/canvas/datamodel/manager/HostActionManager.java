@@ -70,8 +70,8 @@ public class HostActionManager implements ActionManager {
      * @param netService The network service instance.
      */
     public HostActionManager(final String hostId,
-                             final CanvasState state,
-                             final NetworkService netService) {
+            final CanvasState state,
+            final NetworkService netService) {
         this(hostId, state, netService, null);
     }
 
@@ -84,9 +84,9 @@ public class HostActionManager implements ActionManager {
      * @param rpcObj     The RPC instance to use.
      */
     public HostActionManager(final String hostId,
-                             final CanvasState state,
-                             final NetworkService netService,
-                             final AbstractRPC rpcObj) {
+            final CanvasState state,
+            final NetworkService netService,
+            final AbstractRPC rpcObj) {
         this.userId = hostId;
         this.canvasState = state;
         this.networkService = netService;
@@ -157,7 +157,11 @@ public class HostActionManager implements ActionManager {
         try {
             final Action action = actionFactory.createCreateAction(newShape, userId);
             final String sa = NetActionSerializer.serializeAction(action);
-            processIncomingMessage(new NetworkMessage(MessageType.NORMAL, sa.getBytes()));
+            try {
+                processIncomingMessage(new NetworkMessage(MessageType.NORMAL, DataSerializer.serialize(sa)));
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                System.err.println("Host failed to serialize shape: " + e.getMessage());
+            }
         } catch (final Exception e) {
             System.err.println("Host failed to create shape: " + e.getMessage());
         }
@@ -169,7 +173,11 @@ public class HostActionManager implements ActionManager {
             final Action action = actionFactory.createModifyAction(
                     canvasState, prevState.getShapeId(), modifiedShape, userId);
             final String sa = NetActionSerializer.serializeAction(action);
-            processIncomingMessage(new NetworkMessage(MessageType.NORMAL, sa.getBytes()));
+            try {
+                processIncomingMessage(new NetworkMessage(MessageType.NORMAL, DataSerializer.serialize(sa)));
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                System.err.println("Host failed to serialize shape: " + e.getMessage());
+            }
         } catch (final Exception e) {
             System.err.println("Host failed to modify shape: " + e.getMessage());
         }
@@ -181,7 +189,11 @@ public class HostActionManager implements ActionManager {
             final Action action = actionFactory.createDeleteAction(
                     canvasState, shapeToDelete.getShapeId(), userId);
             final String sa = NetActionSerializer.serializeAction(action);
-            processIncomingMessage(new NetworkMessage(MessageType.NORMAL, sa.getBytes()));
+            try {
+                processIncomingMessage(new NetworkMessage(MessageType.NORMAL, DataSerializer.serialize(sa)));
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                System.err.println("Host failed to serialize shape: " + e.getMessage());
+            }
         } catch (final Exception e) {
             System.err.println("Host failed to delete shape: " + e.getMessage());
         }
@@ -194,7 +206,11 @@ public class HostActionManager implements ActionManager {
             if (actionToUndo != null) {
                 final Action inverse = actionFactory.createInverseAction(actionToUndo, userId);
                 final String sa = NetActionSerializer.serializeAction(inverse);
-                processIncomingMessage(new NetworkMessage(MessageType.UNDO, sa.getBytes()));
+                try {
+                    processIncomingMessage(new NetworkMessage(MessageType.UNDO, DataSerializer.serialize(sa)));
+                } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                    System.err.println("Host failed to serialize undo: " + e.getMessage());
+                }
             }
         } catch (final Exception e) {
             System.err.println("Host failed to process undo: " + e.getMessage());
@@ -207,7 +223,11 @@ public class HostActionManager implements ActionManager {
             final Action actionToRedo = undoRedoManager.getActionToRedo();
             if (actionToRedo != null) {
                 final String sa = NetActionSerializer.serializeAction(actionToRedo);
-                processIncomingMessage(new NetworkMessage(MessageType.REDO, sa.getBytes()));
+                try {
+                    processIncomingMessage(new NetworkMessage(MessageType.REDO, DataSerializer.serialize(sa)));
+                } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                    System.err.println("Host failed to serialize redo: " + e.getMessage());
+                }
             }
         } catch (final Exception e) {
             System.err.println("Host failed to process redo: " + e.getMessage());
@@ -235,7 +255,13 @@ public class HostActionManager implements ActionManager {
 
     @Override
     public byte[] handleUpdate(final byte[] data) {
-        final String dataString = new String(data, StandardCharsets.UTF_8);
+        String dataString;
+        try {
+            dataString = DataSerializer.deserialize(data, String.class);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            System.err.println("[HostActionManager] Failed to deserialize data: " + e.getMessage());
+            return data;
+        }
         final NetworkMessage msg = NetworkMessage.deserialize(dataString);
         processIncomingMessage(msg);
         return data;
@@ -262,8 +288,13 @@ public class HostActionManager implements ActionManager {
     private void handleRequestShapes(final NetworkMessage message) {
         try {
             if (message.getPayload() != null && !message.getPayload().isEmpty()) {
-                final byte[] clientNodeBytes = message.getPayload()
-                        .getBytes(StandardCharsets.UTF_8);
+                byte[] clientNodeBytes;
+                try {
+                    clientNodeBytes = DataSerializer.serialize(message.getPayload());
+                } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                    System.err.println("[HostActionManager] Failed to serialize payload: " + e.getMessage());
+                    return;
+                }
                 final ClientNode replyTo = DataSerializer
                         .deserialize(clientNodeBytes, ClientNode.class);
 
@@ -282,7 +313,13 @@ public class HostActionManager implements ActionManager {
 
     private void handleActionMessage(final NetworkMessage message) {
         try {
-            final String json = new String(message.getSerializedAction(), StandardCharsets.UTF_8);
+            String json;
+            try {
+                json = DataSerializer.deserialize(message.getSerializedAction(), String.class);
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                System.err.println("[HostActionManager] Failed to deserialize action: " + e.getMessage());
+                return;
+            }
             final Action action = NetActionSerializer.deserializeAction(json);
 
             if (action == null) {
