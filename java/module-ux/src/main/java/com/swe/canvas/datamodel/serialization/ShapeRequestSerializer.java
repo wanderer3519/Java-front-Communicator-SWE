@@ -6,6 +6,7 @@ package com.swe.canvas.datamodel.serialization;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.swe.controller.ClientNode;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -27,7 +28,27 @@ public class ShapeRequestSerializer {
      */
     public static String serializeToString(final Object obj)
             throws JsonProcessingException {
+        // Special handling for ClientNode to use custom format
+        if (obj instanceof ClientNode) {
+            return serializeClientNode((ClientNode) obj);
+        }
         return OBJECT_MAPPER.writeValueAsString(obj);
+    }
+
+    /**
+     * Serializes a ClientNode to JSON with specific field names: "ipaddr" and
+     * "port".
+     *
+     * @param clientNode the ClientNode to serialize
+     * @return the serialized JSON string
+     */
+    private static String serializeClientNode(final ClientNode clientNode) {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("{\n");
+        sb.append("    \"ipaddr\" : \"").append(clientNode.hostName()).append("\",\n");
+        sb.append("    \"port\" : ").append(clientNode.port()).append("\n");
+        sb.append("}");
+        return sb.toString();
     }
 
     /**
@@ -54,7 +75,29 @@ public class ShapeRequestSerializer {
      */
     public static <T> T deserializeFromString(final String json, final Class<T> datatype)
             throws JsonProcessingException {
+        // Special handling for ClientNode to parse custom format
+        if (datatype == ClientNode.class) {
+            return (T) deserializeClientNode(json);
+        }
         return OBJECT_MAPPER.readValue(json, datatype);
+    }
+
+    /**
+     * Deserializes a JSON string with "ipaddr" and "port" fields to a ClientNode.
+     *
+     * @param json the JSON string with "ipaddr" and "port" fields
+     * @return the deserialized ClientNode
+     * @throws JsonProcessingException if deserialization fails
+     */
+    private static ClientNode deserializeClientNode(final String json)
+            throws JsonProcessingException {
+        // Use ObjectMapper to parse the JSON, then map "ipaddr" to "hostName"
+        final java.util.Map<String, Object> map = OBJECT_MAPPER.readValue(json,
+                new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>() {
+                });
+        final String hostName = (String) map.get("ipaddr");
+        final int port = ((Number) map.get("port")).intValue();
+        return new ClientNode(hostName, port);
     }
 
     /**

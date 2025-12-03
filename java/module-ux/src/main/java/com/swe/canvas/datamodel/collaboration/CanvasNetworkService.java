@@ -11,6 +11,7 @@
 package com.swe.canvas.datamodel.collaboration;
 
 import com.swe.canvas.datamodel.serialization.JsonUtils;
+import com.swe.canvas.datamodel.serialization.ShapeRequestSerializer;
 import com.swe.controller.RPC;
 import com.swe.controller.RPCinterface.AbstractRPC;
 import com.swe.controller.serialize.DataSerializer;
@@ -139,9 +140,7 @@ public class CanvasNetworkService implements NetworkService {
 
         final String serializedMessage = message.serialize();
 
-        // Construct JSON payload: { "target": "email", "data": "serialized_msg" }
-        // We use manual string concatenation to match JsonUtils style/avoid extra
-        // dependencies here
+        // Construct JSON payload with target client ID
         final StringBuilder sb = new StringBuilder();
         sb.append("{");
         sb.append(JsonUtils.jsonEscape("target")).append(":")
@@ -157,7 +156,7 @@ public class CanvasNetworkService implements NetworkService {
 
         try {
             if (this.rpc != null) {
-                this.rpc.call("canvas:sendToClient", DataSerializer.serialize(payload))
+                this.rpc.call("canvas:sendToClient", ShapeRequestSerializer.serializeToBytes(payload))
                         .whenComplete((resp, err) -> {
                             if (err != null) {
                                 System.err.println("[CanvasNetworkService] sendToClient failed: " + err.getMessage());

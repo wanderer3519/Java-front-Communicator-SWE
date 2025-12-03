@@ -113,8 +113,9 @@ public class ClientActionManager implements ActionManager {
                     return;
                 }
 
-                // 2. Deserialize ClientNode
-                final ClientNode myClientNode = DataSerializer.deserialize(whoAmIResponse, ClientNode.class);
+                // 2. Deserialize ClientNode using custom serializer
+                final ClientNode myClientNode = ShapeRequestSerializer.deserializeFromBytes(whoAmIResponse,
+                        ClientNode.class);
                 if (myClientNode == null) {
                     System.err.println("[ClientActionManager] Deserialized ClientNode is null.");
                     return;
