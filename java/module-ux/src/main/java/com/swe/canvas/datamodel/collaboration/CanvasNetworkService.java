@@ -13,6 +13,7 @@ package com.swe.canvas.datamodel.collaboration;
 import com.swe.canvas.datamodel.serialization.JsonUtils;
 import com.swe.controller.RPC;
 import com.swe.controller.RPCinterface.AbstractRPC;
+import com.swe.controller.serialize.DataSerializer;
 import com.swe.networking.ClientNode;
 import com.swe.networking.NetworkFront;
 import java.nio.charset.StandardCharsets;
